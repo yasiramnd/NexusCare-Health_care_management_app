@@ -1,5 +1,3 @@
--- Scheduling Module (Clinic + Availability + Appointment)
-
 -- 1) Clinic table
 CREATE TABLE IF NOT EXISTS clinic (
   clinic_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -29,6 +27,12 @@ CREATE TABLE IF NOT EXISTS availability (
   CONSTRAINT uq_doctor_slot UNIQUE (doctor_id, clinic_id, available_date, available_time)
 );
 
+CREATE INDEX IF NOT EXISTS idx_availability_doctor_date
+  ON availability (doctor_id, available_date);
+
+CREATE INDEX IF NOT EXISTS idx_availability_clinic_date
+  ON availability (clinic_id, available_date);
+
 -- 3) Appointment table
 CREATE TABLE IF NOT EXISTS appointment (
   appointment_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -47,5 +51,15 @@ CREATE TABLE IF NOT EXISTS appointment (
     FOREIGN KEY (doctor_id) REFERENCES staff(user_id) ON DELETE CASCADE,
 
   CONSTRAINT fk_appointment_clinic
-    FOREIGN KEY (clinic_id) REFERENCES clinic(clinic_id) ON DELETE CASCADE
+    FOREIGN KEY (clinic_id) REFERENCES clinic(clinic_id) ON DELETE CASCADE,
+
+  -- prevent double booking (recommended)
+  CONSTRAINT uq_doctor_booking UNIQUE (doctor_id, appointment_date, appointment_time),
+  CONSTRAINT uq_patient_booking UNIQUE (patient_id, appointment_date, appointment_time)
 );
+
+CREATE INDEX IF NOT EXISTS idx_appointment_doctor_date
+  ON appointment (doctor_id, appointment_date);
+
+CREATE INDEX IF NOT EXISTS idx_appointment_patient_date
+  ON appointment (patient_id, appointment_date);
