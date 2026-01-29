@@ -1,9 +1,9 @@
---Create sequence for patients numbers
-CREATE SEQUENCE patient_seq
+-- Create sequence for patient numbers
+CREATE SEQUENCE IF NOT EXISTS patient_seq
 START 1
 INCREMENT 1;
 
---Create patients table
+-- Create patients table
 CREATE TABLE IF NOT EXISTS patients (
     patient_id VARCHAR(10) PRIMARY KEY,
     user_id UUID UNIQUE NOT NULL,
@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS patients (
     date_of_birth DATE NOT NULL,
     gender VARCHAR(10),
     image_url VARCHAR(2048),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
     CONSTRAINT fk_patient_user
         FOREIGN KEY (user_id)
@@ -19,30 +19,33 @@ CREATE TABLE IF NOT EXISTS patients (
         ON DELETE CASCADE
 );
 
---Create trigger function
+-- Create trigger function
 CREATE OR REPLACE FUNCTION generate_patient_id()
-RETURns TRIGGER As $$
+RETURNS TRIGGER AS $$
 BEGIN
     NEW.patient_id :=
-        'PT' || LpaD(nextval('patient_seq')::TEXT, 4, '0');
+        'PT' || LPAD(nextval('patient_seq')::TEXT, 4, '0');
     RETURN NEW;
 END;
-$$ LANGuaGE plpgsql;
+$$ LANGUAGE plpgsql;
 
---Create trigger
+-- Create trigger (avoid error if already exists)
+DROP TRIGGER IF EXISTS trg_generate_patient_id ON patients;
+
 CREATE TRIGGER trg_generate_patient_id
-BEFORE INSERT ON patients FOR EACH ROW
-EXECUTE Function generate_patient_id();
+BEFORE INSERT ON patients
+FOR EACH ROW
+EXECUTE FUNCTION generate_patient_id();
 
 -- Create emergency_profile table
 CREATE TABLE IF NOT EXISTS emergency_profile (
     patient_id VARCHAR(10) PRIMARY KEY,
     contact_name VARCHAR(100) NOT NULL,
     contact_phone VARCHAR(20) NOT NULL,
-    chornical_conditions TEXT,
+    chronic_conditions TEXT,                 -- fixed typo
     blood_group VARCHAR(5),
     allergies TEXT,
-    is_public_visible BOOLEAN,
+    is_public_visible BOOLEAN NOT NULL DEFAULT FALSE,  -- safer default
 
     CONSTRAINT fk_emergency_patient
         FOREIGN KEY (patient_id)
