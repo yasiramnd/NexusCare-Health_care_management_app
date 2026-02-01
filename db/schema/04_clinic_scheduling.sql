@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS availability (
 
   CONSTRAINT fk_availability_doctor
     FOREIGN KEY (doctor_id)
-    REFERENCES staff(user_id)
+    REFERENCES staff_base(user_id)
     ON DELETE CASCADE,
 
   CONSTRAINT fk_availability_clinic
@@ -24,7 +24,8 @@ CREATE TABLE IF NOT EXISTS availability (
     REFERENCES clinic(clinic_id)
     ON DELETE CASCADE,
 
-  CONSTRAINT uq_doctor_slot UNIQUE (doctor_id, clinic_id, available_date, available_time)
+  CONSTRAINT uq_doctor_slot
+    UNIQUE (doctor_id, clinic_id, available_date, available_time)
 );
 
 CREATE INDEX IF NOT EXISTS idx_availability_doctor_date
@@ -45,17 +46,26 @@ CREATE TABLE IF NOT EXISTS appointment (
   is_paid BOOLEAN NOT NULL DEFAULT FALSE,
 
   CONSTRAINT fk_appointment_patient
-    FOREIGN KEY (patient_id) REFERENCES patients(patient_id) ON DELETE CASCADE,
+    FOREIGN KEY (patient_id)
+    REFERENCES patients(patient_id)
+    ON DELETE CASCADE,
 
   CONSTRAINT fk_appointment_doctor
-    FOREIGN KEY (doctor_id) REFERENCES staff(user_id) ON DELETE CASCADE,
+    FOREIGN KEY (doctor_id)
+    REFERENCES staff_base(user_id)
+    ON DELETE CASCADE,
 
   CONSTRAINT fk_appointment_clinic
-    FOREIGN KEY (clinic_id) REFERENCES clinic(clinic_id) ON DELETE CASCADE,
+    FOREIGN KEY (clinic_id)
+    REFERENCES clinic(clinic_id)
+    ON DELETE CASCADE,
 
-  -- prevent double booking (recommended)
-  CONSTRAINT uq_doctor_booking UNIQUE (doctor_id, appointment_date, appointment_time),
-  CONSTRAINT uq_patient_booking UNIQUE (patient_id, appointment_date, appointment_time)
+  -- Prevent double booking
+  CONSTRAINT uq_doctor_booking
+    UNIQUE (doctor_id, appointment_date, appointment_time),
+
+  CONSTRAINT uq_patient_booking
+    UNIQUE (patient_id, appointment_date, appointment_time)
 );
 
 CREATE INDEX IF NOT EXISTS idx_appointment_doctor_date
