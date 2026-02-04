@@ -1,25 +1,17 @@
--- Insert a medical record
+-- medical record
 INSERT INTO medical_record (patient_id, doctor_id, diagnosis, notes, visit_date)
-VALUES
-(
-    1,  -- patient_id from Member 2
-    1,  -- doctor_id from Member 3
-    'Fever and cough',
-    'Patient has mild viral infection',
-    '2026-01-20'
-)
+SELECT p.patient_id, d.user_id, 'Fever and cough', 'Mild viral infection', CURRENT_DATE
+FROM users pu
+JOIN patients p ON p.user_id = pu.user_id
+JOIN users du ON du.first_name='John' AND du.last_name='Doctor'
+JOIN doctors d ON d.user_id = du.user_id
+WHERE pu.first_name='Jane' AND pu.last_name='Patient'
 ON CONFLICT DO NOTHING;
 
--- Insert a prescription for that record
+-- prescription for last record
 INSERT INTO prescription (record_id, patient_id, doctor_id, medicine_name, dosage, frequency, duration_days)
-VALUES
-(
-    (SELECT record_id FROM medical_record LIMIT 1),
-    1,
-    1,
-    'Paracetamol',
-    '500mg',
-    'Twice a day',
-    5
-)
+SELECT mr.record_id, mr.patient_id, mr.doctor_id, 'Paracetamol', '500mg', 'Twice a day', 5
+FROM medical_record mr
+ORDER BY mr.record_id DESC
+LIMIT 1
 ON CONFLICT DO NOTHING;

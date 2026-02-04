@@ -1,10 +1,18 @@
--- placeholder
-SELECT * FROM orders
-WHERE patient_id = 1;
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM orders) THEN
+    RAISE EXCEPTION 'TEST FAIL: orders table is empty';
+  END IF;
 
-SELECT * FROM lab_reports
-WHERE patient_id = 1;
+  IF NOT EXISTS (SELECT 1 FROM priority_orders) THEN
+    RAISE EXCEPTION 'TEST FAIL: priority_orders table is empty';
+  END IF;
 
-SELECT *
-FROM lab_reports
-WHERE uploaded_at >= CURRENT_DATE - INTERVAL '7 days';
+  IF NOT EXISTS (SELECT 1 FROM recommended_reports) THEN
+    RAISE EXCEPTION 'TEST FAIL: recommended_reports table is empty';
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM lab_reports) THEN
+    RAISE EXCEPTION 'TEST FAIL: lab_reports table is empty';
+  END IF;
+END $$;
