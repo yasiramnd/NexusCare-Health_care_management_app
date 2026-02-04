@@ -1,6 +1,9 @@
--- Admin ID sequence
-CREATE SEQUENCE IF NOT EXISTS admin_seq START 1 INCREMENT 1;
+-- 1) Admin ID sequence
+CREATE SEQUENCE IF NOT EXISTS admin_seq
+START 1
+INCREMENT 1;
 
+-- 2) Admins table
 CREATE TABLE IF NOT EXISTS admins (
   admin_id VARCHAR(10) PRIMARY KEY,
   user_id UUID UNIQUE NOT NULL,
@@ -14,6 +17,7 @@ CREATE TABLE IF NOT EXISTS admins (
     ON DELETE CASCADE
 );
 
+-- 3) Trigger function: generate admin_id (only if not provided)
 CREATE OR REPLACE FUNCTION generate_admin_id()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -24,17 +28,19 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- 4) Trigger: create safely (drop if exists first)
 DROP TRIGGER IF EXISTS trg_generate_admin_id ON admins;
+
 CREATE TRIGGER trg_generate_admin_id
 BEFORE INSERT ON admins
 FOR EACH ROW
 EXECUTE FUNCTION generate_admin_id();
 
--- Verification workflow (for staff approvals)
+-- 5) Verification requests table
 CREATE TABLE IF NOT EXISTS verification_requests (
   request_id BIGSERIAL PRIMARY KEY,
-  applicant_user_id UUID NOT NULL UNIQUE,   -- 1 request per applicant (can be changed later)
-  reviewer_admin_id VARCHAR(10),            -- nullable until processed
+  applicant_user_id UUID NOT NULL,          
+  reviewer_admin_id VARCHAR(10),            
   status VARCHAR(20) NOT NULL DEFAULT 'Pending'
     CHECK (status IN ('Pending','Approved','Rejected')),
   document_url VARCHAR(2048),
@@ -52,6 +58,8 @@ CREATE TABLE IF NOT EXISTS verification_requests (
     REFERENCES admins(admin_id)
     ON DELETE SET NULL,
 
+  -- If Pending -> processed_at must be NULL
+  -- If Approved/Rejected -> processed_at must NOT be NULL
   CONSTRAINT chk_processed_time
     CHECK (
       (status = 'Pending' AND processed_at IS NULL)
@@ -59,5 +67,19 @@ CREATE TABLE IF NOT EXISTS verification_requests (
     )
 );
 
-CREATE INDEX IF NOT EXISTS idx_verif_status ON verification_requests(status);
-CREATE INDEX IF NOT EXISTS idx_verif_submitted ON verification_requests(submitted_at);
+-- 6) Indexes
+CREATE INDEX IF NOT EXISTS idx_verif_applicant
+  ON verification_requests(applicant_user_id);
+
+CREATE INDEX IF NOT EXISTS idx_verif_status
+  ON verification_requests(status);
+
+CREATE INDEX IF NOT EXISTS idx_verif_submitted
+  ON verification_requests(submitted_at);
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_verif_pending_per_applicant
+  ON verification_requests(applicant_user_id)
+  WHERE status = 'Pending';
+
+CREATE INDEX IF NOT EXISTS idx_verif_applicant_submitted_desc
+  ON verification_requests(applicant_user_id, submitted_at DESC);
