@@ -1,55 +1,56 @@
--- Clinic & Scheduling Tables
-
-CREATE SEQUENCE clinic_seq START 1 INCREMENT 1;
-
 CREATE TABLE IF NOT EXISTS clinic (
-  clinic_id VARCHAR(12) PRIMARY KEY,
-  user_id VARCHAR(12) NOT NULL,
+  clinic_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   clinic_location VARCHAR(150) NOT NULL,
-  has_clinic_management BOOLEAN NOT NULL DEFAULT FALSE,
-
-  CONSTRAINT fk_user_id FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+  has_clinic_management BOOLEAN NOT NULL DEFAULT FALSE
 );
 
--- Note: doctor_id removed to avoid circular dependency
--- Doctor-clinic relationship is managed through the availability table
-
-CREATE SEQUENCE availability_seq START 1 INCREMENT 1;
-
 CREATE TABLE IF NOT EXISTS availability (
-  availability_id VARCHAR(12) PRIMARY KEY,
-  doctor_id VARCHAR(12) NOT NULL,
-  clinic_id VARCHAR(12) NOT NULL,
+  availability_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  doctor_id UUID NOT NULL,         -- must be a doctor
+  clinic_id UUID NOT NULL,
   available_date DATE NOT NULL,
   available_time TIME NOT NULL,
   is_available BOOLEAN NOT NULL DEFAULT TRUE,
 
-  CONSTRAINT fk_availability_doctor FOREIGN KEY (doctor_id) REFERENCES doctor(doctor_id) ON DELETE CASCADE,
-  CONSTRAINT fk_availability_clinic FOREIGN KEY (clinic_id) REFERENCES clinic(clinic_id) ON DELETE CASCADE,
-  CONSTRAINT uq_availability_slot UNIQUE (doctor_id, clinic_id, available_date, available_time)
+  CONSTRAINT fk_availability_doctor
+    FOREIGN KEY (doctor_id)
+    REFERENCES doctors(user_id)
+    ON DELETE CASCADE,
+
+  CONSTRAINT fk_availability_clinic
+    FOREIGN KEY (clinic_id)
+    REFERENCES clinic(clinic_id)
+    ON DELETE CASCADE,
+
+  CONSTRAINT uq_doctor_slot UNIQUE (doctor_id, clinic_id, available_date, available_time)
 );
 
-CREATE SEQUENCE appointment_seq START 1 INCREMENT 1;
+CREATE INDEX IF NOT EXISTS idx_availability_doctor_date
+  ON availability (doctor_id, available_date);
 
 CREATE TABLE IF NOT EXISTS appointment (
-  appointment_id VARCHAR(12) PRIMARY KEY,
-  patient_id VARCHAR(12),
-  doctor_id VARCHAR(12),
-  clinic_id VARCHAR(12),
+  appointment_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  patient_id VARCHAR(10) NOT NULL,
+  doctor_id UUID NOT NULL,
+  clinic_id UUID NOT NULL,
   appointment_date DATE NOT NULL,
   appointment_time TIME NOT NULL,
-  status VARCHAR(30) NOT NULL DEFAULT 'Waiting' CHECK (status IN ('Waiting', 'Ongoing', 'Conducted','Not Conducted')),
+  status VARCHAR(30) NOT NULL DEFAULT 'BOOKED'
+    CHECK (status IN ('BOOKED','WAITING','ONGOING','CONDUCTED','CANCELLED')),
   is_paid BOOLEAN NOT NULL DEFAULT FALSE,
 
-  CONSTRAINT fk_appointment_patient FOREIGN KEY (patient_id) REFERENCES patient(patient_id) ON DELETE CASCADE,
-  CONSTRAINT fk_appointment_doctor FOREIGN KEY (doctor_id) REFERENCES doctor(doctor_id) ON DELETE CASCADE,
-  CONSTRAINT fk_appointment_clinic FOREIGN KEY (clinic_id) REFERENCES clinic(clinic_id) ON DELETE CASCADE
+  CONSTRAINT fk_appointment_patient
+    FOREIGN KEY (patient_id) REFERENCES patients(patient_id) ON DELETE CASCADE,
+
+  CONSTRAINT fk_appointment_doctor
+    FOREIGN KEY (doctor_id) REFERENCES doctors(user_id) ON DELETE CASCADE,
+
+  CONSTRAINT fk_appointment_clinic
+    FOREIGN KEY (clinic_id) REFERENCES clinic(clinic_id) ON DELETE CASCADE,
+
+  CONSTRAINT uq_doctor_booking UNIQUE (doctor_id, appointment_date, appointment_time),
+  CONSTRAINT uq_patient_booking UNIQUE (patient_id, appointment_date, appointment_time)
 );
 
--- Performance Indexes for Fast Query Response (<2 seconds)
-CREATE INDEX idx_appointment_date ON appointment(appointment_date);
-CREATE INDEX idx_appointment_patient ON appointment(patient_id);
-CREATE INDEX idx_appointment_doctor ON appointment(doctor_id);
-CREATE INDEX idx_appointment_status ON appointment(status);
-CREATE INDEX idx_availability_date ON availability(available_date);
-CREATE INDEX idx_availability_doctor_clinic ON availability(doctor_id, clinic_id);
+CREATE INDEX IF NOT EXISTS idx_appointment_doctor_date
+  ON appointment (doctor_id, appointment_date);
