@@ -1,29 +1,15 @@
+-- Core Identity Tables
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
+-- Sequence for Users
+CREATE SEQUENCE IF NOT EXISTS user_seq START 1 INCREMENT 1;
+
 CREATE TABLE IF NOT EXISTS users (
-  user_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  first_name   VARCHAR(60) NOT NULL,
-  last_name    VARCHAR(60) NOT NULL,
-  contact_no1  VARCHAR(20),
+  user_id VARCHAR(12) PRIMARY KEY,
+  name   VARCHAR(60) NOT NULL,
+  contact_no1  VARCHAR(20) NOT NULL,
   contact_no2  VARCHAR(20),
-  address      TEXT,
+  address      TEXT NOT NULL,
   created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE TABLE IF NOT EXISTS credentials (
-  user_id UUID PRIMARY KEY,
-  firebase_uid VARCHAR(128) UNIQUE NOT NULL,
-  user_name   VARCHAR(80)  UNIQUE NOT NULL,
-  email       VARCHAR(120) UNIQUE NOT NULL,
-  role VARCHAR(20) NOT NULL
-    CHECK (role IN ('ADMIN','DOCTOR','PATIENT','LAB','PHARMACY','RESPONDER')),
-  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-
-  CONSTRAINT fk_credentials_user
-    FOREIGN KEY (user_id)
-    REFERENCES users(user_id)
-    ON DELETE CASCADE
-);
-
-CREATE INDEX IF NOT EXISTS idx_credentials_role ON credentials(role);
-CREATE INDEX IF NOT EXISTS idx_credentials_email ON credentials(email);
