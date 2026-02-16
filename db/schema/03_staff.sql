@@ -1,35 +1,51 @@
--- Common staff info
-CREATE TABLE IF NOT EXISTS staff_base (
-  user_id UUID PRIMARY KEY REFERENCES users(user_id) ON DELETE CASCADE,
-  license_no VARCHAR(50) NOT NULL UNIQUE,
-  organization VARCHAR(120) NOT NULL,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+-- Staff Tables (Doctors, Pharmacy, Lab)
+
+-- 1. Doctor
+CREATE SEQUENCE doctor_seq START 1 INCREMENT 1;
+
+CREATE TABLE IF NOT EXISTS doctor (
+  doctor_id VARCHAR(12) PRIMARY KEY,
+  user_id VARCHAR(12),
+  license_no VARCHAR(15) NOT NULL,
+  nic_no VARCHAR(12) NOT NULL,
+  gender VARCHAR(10) NOT NULL CHECK (gender IN ('Male','Female')),
+  image_url VARCHAR(2048),
+  specialization VARCHAR(25) NOT NULL,
+  certification_url VARCHAR(2048) NOT NULL,
+
+  CONSTRAINT fk_doctor_user
+        FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 );
 
-CREATE INDEX IF NOT EXISTS idx_staff_base_org ON staff_base(organization);
+-- 2. Pharmacy
+CREATE SEQUENCE pharmacy_seq START 1 INCREMENT 1;
 
--- Doctors
-CREATE TABLE IF NOT EXISTS doctors (
-  user_id UUID PRIMARY KEY REFERENCES staff_base(user_id) ON DELETE CASCADE,
-  specialization VARCHAR(100),
-  consultation_fee NUMERIC(10,2) CHECK (consultation_fee IS NULL OR consultation_fee >= 0),
-  slmc_expiry_date DATE
+CREATE TABLE IF NOT EXISTS pharmacy (
+  pharmacy_id VARCHAR(12) PRIMARY KEY,
+  user_id VARCHAR(12),
+  pharmacy_license_no VARCHAR(15) NOT NULL,
+  business_registration_number VARCHAR(50) NOT NULL,
+  business_registration_url VARCHAR(2048) NOT NULL,
+  available_date DATE NOT NULL,
+  available_time TIME NOT NULL,
+
+  CONSTRAINT fk_pharmacy_user
+        FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 );
 
--- Pharmacies
-CREATE TABLE IF NOT EXISTS pharmacies (
-  user_id UUID PRIMARY KEY REFERENCES staff_base(user_id) ON DELETE CASCADE,
-  pharmacy_license_no VARCHAR(50) NOT NULL UNIQUE,
-  pharmacy_name VARCHAR(120),
-  is_24_hours BOOLEAN NOT NULL DEFAULT FALSE
-);
+-- 3. Lab
+CREATE SEQUENCE lab_seq START 1 INCREMENT 1;
 
--- Labs
-CREATE TABLE IF NOT EXISTS labs (
-  user_id UUID PRIMARY KEY REFERENCES staff_base(user_id) ON DELETE CASCADE,
-  lab_license_no VARCHAR(50) NOT NULL UNIQUE,
-  lab_name VARCHAR(120),
-  is_24_hours BOOLEAN NOT NULL DEFAULT FALSE
-);
+CREATE TABLE IF NOT EXISTS lab (
+  lab_id VARCHAR(12) PRIMARY KEY,
+  user_id VARCHAR(12),
+  license_no VARCHAR(15) NOT NULL,
+  business_registration_number VARCHAR(50) NOT NULL,
+  business_registration_url VARCHAR(2048) NOT NULL,
+  available_date DATE NOT NULL,
+  available_time TIME NOT NULL,
+  avilable_tests TEXT NOT NULL,
 
-CREATE INDEX IF NOT EXISTS idx_doctors_spec ON doctors(specialization);
+  CONSTRAINT fk_lab_user
+        FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+);
