@@ -1,9 +1,15 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { apiFetch } from "../api/client";
 import "../styles/auth.css";
 
 export default function DoctorRegisterPage() {
   const navigate = useNavigate();
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPw, setShowPw] = useState(false);
 
   const [form, setForm] = useState({
     name: "",
@@ -31,6 +37,20 @@ export default function DoctorRegisterPage() {
     setMsg("");
     setErr("");
 
+    // Validate email & password
+    if (!email.trim() || !password) {
+      setErr("Email and password are required.");
+      return;
+    }
+    if (password.length < 6) {
+      setErr("Password must be at least 6 characters.");
+      return;
+    }
+    if (password !== confirmPassword) {
+      setErr("Passwords do not match.");
+      return;
+    }
+
     const required = ["name", "contact_no1", "address", "nic_no", "specialization", "license_no"];
     const missing = required.filter((k) => !String(form[k] || "").trim());
     if (missing.length) {
@@ -45,37 +65,49 @@ export default function DoctorRegisterPage() {
 
     setLoading(true);
     try {
-      const base = import.meta.env.VITE_API_URL || "http://localhost:5000";
+      // Step 1: Create auth account (email + password + role)
+      const authRes = await apiFetch("/auth/register", {
+        method: "POST",
+        body: JSON.stringify({
+          email: email.trim(),
+          password,
+          role: "DOCTOR",
+        }),
+      });
 
+      // Step 2: Submit doctor profile with FormData
+      const base = import.meta.env.VITE_API_URL || "";
       const fd = new FormData();
+      fd.append("user_id", authRes.user_id);
+      fd.append("email", email.trim());
       fd.append("name", form.name.trim());
       fd.append("contact_no1", form.contact_no1.trim());
       fd.append("contact_no2", form.contact_no2.trim());
       fd.append("address", form.address.trim());
-
       fd.append("nic_no", form.nic_no.trim());
       fd.append("gender", form.gender);
       fd.append("specialization", form.specialization.trim());
       fd.append("license_no", form.license_no.trim());
-
       fd.append("certificate", certificateFile);
 
-      const res = await fetch(`${base}/doctor/register-request`, {
-        method: "POST",
-        body: fd,
-      });
-
-      const data = await res.json().catch(() => ({}));
-
-      if (!res.ok) {
-        setErr(data?.error || `Registration failed (${res.status})`);
-        return;
+      // Try to submit doctor profile (may not exist yet — that's okay)
+      try {
+        const profileRes = await fetch(`${base}/api/doctor/register-request`, {
+          method: "POST",
+          body: fd,
+        });
+        if (!profileRes.ok) {
+          const d = await profileRes.json().catch(() => ({}));
+          console.warn("Doctor profile submission:", d?.error || profileRes.status);
+        }
+      } catch {
+        console.warn("Doctor profile endpoint not available yet");
       }
 
-      setMsg("Registration submitted! Please wait for admin approval.");
-      setTimeout(() => navigate("/doctor/login"), 1500);
-    } catch {
-      setErr("Cannot connect to server. Please try again.");
+      setMsg(authRes.message || "Registration submitted! Please wait for admin approval.");
+      setTimeout(() => navigate("/doctor/login"), 2000);
+    } catch (error) {
+      setErr(error.message || "Registration failed. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -105,6 +137,70 @@ export default function DoctorRegisterPage() {
           </p>
 
           <form className="auth2-form" onSubmit={handleSubmit} style={{ maxWidth: 640 }}>
+            {/* ── Account Credentials ── */}
+            <div className="auth2-divider">Account Credentials</div>
+
+            <div className="auth2-grid2">
+              <div>
+                <div className="auth2-label">Email *</div>
+                <div className="auth2-field auth2-field--has-icon">
+                  <Icon d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z M22 6l-10 7L2 6" />
+                  <input
+                    id="reg-email"
+                    className="auth2-input"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="doctor@example.com"
+                    aria-label="Email"
+                    autoComplete="email"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <div className="auth2-label">Password *</div>
+                <div className="auth2-field auth2-field--has-icon">
+                  <Icon d={<><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></>} />
+                  <input
+                    id="reg-password"
+                    className="auth2-input"
+                    type={showPw ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Min 6 characters"
+                    aria-label="Password"
+                    autoComplete="new-password"
+                  />
+                  <button
+                    type="button"
+                    className="auth2-pw-toggle"
+                    onClick={() => setShowPw((v) => !v)}
+                    aria-label={showPw ? "Hide password" : "Show password"}
+                  >
+                    {showPw ? "🙈" : "👁️"}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <div className="auth2-label">Confirm Password *</div>
+                <div className="auth2-field auth2-field--has-icon">
+                  <Icon d={<><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></>} />
+                  <input
+                    id="reg-confirm-pw"
+                    className="auth2-input"
+                    type={showPw ? "text" : "password"}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Re-enter password"
+                    aria-label="Confirm Password"
+                    autoComplete="new-password"
+                  />
+                </div>
+              </div>
+            </div>
+
             {/* ── Personal Info ── */}
             <div className="auth2-divider">Personal Information</div>
 

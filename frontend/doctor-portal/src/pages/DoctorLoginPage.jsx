@@ -46,6 +46,7 @@ export default function DoctorLoginPage() {
 
       localStorage.setItem("access_token", token);
       if (role) localStorage.setItem("role", role);
+      if (data.user_id) localStorage.setItem("user_id", data.user_id);
 
       navigate("/doctor/dashboard");
     } catch (err) {
