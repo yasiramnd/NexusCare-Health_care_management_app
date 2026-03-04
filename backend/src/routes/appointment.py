@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from db import get_conn
+from src.utils.db import get_conn
 import psycopg2
 
 appointment_bp = Blueprint("appointment_bp", __name__)
