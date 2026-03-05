@@ -13,6 +13,7 @@ import PrescriptionsPage from "./pages/PrescriptionsPage";
 import LabReportsPage from "./pages/LabReportsPage";
 import DoctorProfilePage from "./pages/DoctorProfilePage";
 import DoctorProtectedRoute from "./components/DoctorProtectedRoute";
+import AvailabilityPage from "./pages/AvailabilityPage";
 
 function Protected({ children }) {
   return <DoctorProtectedRoute>{children}</DoctorProtectedRoute>;
@@ -39,6 +40,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
         <Route path="/doctor/prescriptions" element={<Protected><PrescriptionsPage /></Protected>} />
         <Route path="/doctor/labs" element={<Protected><LabReportsPage /></Protected>} />
         <Route path="/doctor/profile" element={<Protected><DoctorProfilePage /></Protected>} />
+        <Route path="/doctor/availability" element={<Protected><AvailabilityPage /></Protected>} />
       </Routes>
     </BrowserRouter>
   </React.StrictMode>
