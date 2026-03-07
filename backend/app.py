@@ -13,10 +13,17 @@ app.register_blueprint(doctor_bp, url_prefix="/api")
 
 @app.route("/health")
 def health():
+    """Liveness probe – always returns 200 if the process is up."""
+    return jsonify({"status": "OK", "message": "Service is running."}), 200
+
+
+@app.route("/health/db")
+def health_db():
+    """Readiness probe – checks live database connectivity."""
     try:
         conn = get_conn()
         conn.close()
-        return jsonify({"status": "OK", "message": "Database connected."})
+        return jsonify({"status": "OK", "message": "Database connected."}), 200
     except Exception as e:
         return jsonify({"status": "ERROR", "message": str(e)}), 500
 

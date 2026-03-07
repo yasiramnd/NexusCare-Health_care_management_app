@@ -292,8 +292,8 @@ jobs:
 
             echo "=== Waiting for health check ==="
             sleep 15
-            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:5000/health || echo "000")
-            echo "Health check: $HTTP_CODE"
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:5000/health/db || echo "000")
+            echo "Health check (/health/db): $HTTP_CODE"
 
             if [ "$HTTP_CODE" != "200" ]; then
               echo "FAIL: Health check returned $HTTP_CODE – rolling back"

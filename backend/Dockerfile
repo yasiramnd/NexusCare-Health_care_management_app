@@ -46,6 +46,6 @@ ENV FLASK_APP=app.py \
     PYTHONUNBUFFERED=1
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
-    CMD curl -f http://localhost:5000/health || exit 1
+    CMD curl -f http://localhost:5000/health/db || exit 1
 
 CMD ["sh", "-c", "gunicorn --bind 0.0.0.0:5000 --workers ${GUNICORN_WORKERS:-2} --timeout 120 --access-logfile - --error-logfile - app:app"]
