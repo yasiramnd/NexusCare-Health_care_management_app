@@ -6,10 +6,10 @@ load_dotenv(override=True)
 
 def get_conn():
     return psycopg2.connect(
-        host=os.getenv("DB_HOST", "localhost"),
-        port=int(os.getenv("DB_PORT", 5432)),
-        dbname=os.getenv("DB_NAME"),
-        user=os.getenv("DB_USER"),
-        password=os.getenv("DB_PASSWORD"),
+        host=os.getenv("HOSPITAL_DB_HOST"),
+        port=int(os.getenv("HOSPITAL_DB_PORT", 5432)),
+        dbname=os.getenv("HOSPITAL_DB_NAME"),
+        user=os.getenv("HOSPITAL_DB_USER"),
+        password=os.getenv("HOSPITAL_DB_PASSWORD"),
         sslmode="require"
     )

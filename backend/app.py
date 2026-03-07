@@ -1,9 +1,9 @@
 from flask import Flask, jsonify
 from flask_cors import CORS
-from db import get_conn
+from src.utils.db import get_conn
 
-from routes.appointment_routes import appointment_bp
-from routes.qr import doctor_bp
+from src.routes.appointment import appointment_bp
+from src.routes.qr import doctor_bp
 app = Flask(__name__)       
 CORS(app)
 
