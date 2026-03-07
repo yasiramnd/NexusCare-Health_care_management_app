@@ -274,33 +274,102 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             set -e
+            APP_DIR="$HOME/nexuscare"
+            PROD_CONTAINER="nexuscare-backend"
+            CANDIDATE_CONTAINER="nexuscare-backend-candidate"
+            IMAGE="kavindur2003/nexuscare-backend:latest"
+
             echo "=== Pulling latest image from Docker Hub ==="
-            docker pull kavindur2003/nexuscare-backend:latest
+            docker pull "$IMAGE"
 
-            echo "=== Stopping old container (if running) ==="
-            docker stop nexuscare-backend || true
-            docker rm nexuscare-backend || true
+            echo "=== Validating required runtime files ==="
+            test -f "$APP_DIR/.env"
+            test -f "$APP_DIR/firebase_service_key.json"
 
-            echo "=== Starting new container ==="
+            echo "=== Cleaning old candidate (if any) ==="
+            docker stop "$CANDIDATE_CONTAINER" || true
+            docker rm "$CANDIDATE_CONTAINER" || true
+
+            echo "=== Starting candidate container on port 5001 ==="
             docker run -d \
-              --name nexuscare-backend \
+              --name "$CANDIDATE_CONTAINER" \
+              --restart unless-stopped \
+              -p 5001:5000 \
+              --env-file "$APP_DIR/.env" \
+              -v "$APP_DIR/firebase_service_key.json:/app/firebase_service_key.json:ro" \
+              "$IMAGE"
+
+            echo "=== Waiting for candidate health check ==="
+            ATTEMPT=1
+            MAX_ATTEMPTS=12
+            until [ "$ATTEMPT" -gt "$MAX_ATTEMPTS" ]; do
+              STATUS=$(docker inspect --format='{{.State.Status}}' "$CANDIDATE_CONTAINER" 2>/dev/null || echo "missing")
+              if [ "$STATUS" != "running" ]; then
+                echo "Candidate container status: $STATUS"
+                docker logs "$CANDIDATE_CONTAINER" || true
+                exit 1
+              fi
+
+              HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:5001/health/db || true)
+              echo "Candidate health attempt $ATTEMPT/$MAX_ATTEMPTS: $HTTP_CODE"
+
+              if [ "$HTTP_CODE" = "200" ]; then
+                break
+              fi
+
+              if [ "$ATTEMPT" = "$MAX_ATTEMPTS" ]; then
+                echo "FAIL: Candidate never became healthy"
+                docker logs "$CANDIDATE_CONTAINER" || true
+                exit 1
+              fi
+
+              ATTEMPT=$((ATTEMPT + 1))
+              sleep 5
+            done
+
+            echo "=== Candidate is healthy; replacing production ==="
+            docker stop "$PROD_CONTAINER" || true
+            docker rm "$PROD_CONTAINER" || true
+
+            docker run -d \
+              --name "$PROD_CONTAINER" \
               --restart unless-stopped \
               -p 5000:5000 \
-              --env-file ~/nexuscare/.env \
-              -v ~/nexuscare/firebase_service_key.json:/app/firebase_service_key.json:ro \
-              kavindur2003/nexuscare-backend:latest
+              --env-file "$APP_DIR/.env" \
+              -v "$APP_DIR/firebase_service_key.json:/app/firebase_service_key.json:ro" \
+              "$IMAGE"
 
-            echo "=== Waiting for health check ==="
-            sleep 15
-            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:5000/health/db || echo "000")
-            echo "Health check (/health/db): $HTTP_CODE"
+            echo "=== Verifying production container ==="
+            ATTEMPT=1
+            MAX_ATTEMPTS=12
+            until [ "$ATTEMPT" -gt "$MAX_ATTEMPTS" ]; do
+              STATUS=$(docker inspect --format='{{.State.Status}}' "$PROD_CONTAINER" 2>/dev/null || echo "missing")
+              if [ "$STATUS" != "running" ]; then
+                echo "Production container status: $STATUS"
+                docker logs "$PROD_CONTAINER" || true
+                exit 1
+              fi
 
-            if [ "$HTTP_CODE" != "200" ]; then
-              echo "FAIL: Health check returned $HTTP_CODE – rolling back"
-              docker stop nexuscare-backend || true
-              docker rm nexuscare-backend || true
-              exit 1
-            fi
+              HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:5000/health/db || true)
+              echo "Production health attempt $ATTEMPT/$MAX_ATTEMPTS: $HTTP_CODE"
+
+              if [ "$HTTP_CODE" = "200" ]; then
+                break
+              fi
+
+              if [ "$ATTEMPT" = "$MAX_ATTEMPTS" ]; then
+                echo "FAIL: Production container never became healthy"
+                docker logs "$PROD_CONTAINER" || true
+                exit 1
+              fi
+
+              ATTEMPT=$((ATTEMPT + 1))
+              sleep 5
+            done
+
+            echo "=== Cleaning up candidate container ==="
+            docker stop "$CANDIDATE_CONTAINER" || true
+            docker rm "$CANDIDATE_CONTAINER" || true
 
             echo "=== Cleaning up old images ==="
             docker image prune -f
