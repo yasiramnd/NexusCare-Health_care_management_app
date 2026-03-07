@@ -1,0 +1,345 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body, #root {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  background: #e8f5f5;
+  min-height: 100vh;
+}
+
+/* ── PAGE ── */
+.scan-page {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #ccfbf1 0%, #e8f5f5 280px);
+  display: flex;
+  flex-direction: column;
+  max-width: 480px;
+  margin: 0 auto;
+  padding-bottom: 80px;
+}
+
+/* ── HEADER ── */
+.scan-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 52px 20px 16px;
+}
+.scan-back-btn {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: white;
+  border: none;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  flex-shrink: 0;
+  transition: box-shadow 0.15s;
+}
+.scan-back-btn:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.14); }
+.scan-title {
+  font-size: 24px;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.4px;
+}
+
+/* SUBTITLE */
+.scan-subtitle {
+  padding: 0 20px 20px;
+  font-size: 13.5px;
+  color: #475569;
+  font-weight: 500;
+  line-height: 1.6;
+}
+
+/* ── CONTENT ── */
+.scan-content {
+  flex: 1;
+  padding: 0 20px;
+}
+
+/* ── SCANNER VIEWER ── */
+.scan-viewer-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.scan-viewer {
+  background: #0f172a;
+  border-radius: 20px;
+  overflow: hidden;
+  position: relative;
+  min-height: 320px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Corner brackets */
+.corner {
+  position: absolute;
+  width: 36px; height: 36px;
+  border-color: #3b82f6;
+  border-style: solid;
+  border-width: 0;
+}
+.corner.tl { top: 20px; left: 20px;  border-top-width: 3px; border-left-width: 3px;  border-top-left-radius: 4px; }
+.corner.tr { top: 20px; right: 20px; border-top-width: 3px; border-right-width: 3px; border-top-right-radius: 4px; }
+.corner.bl { bottom: 64px; left: 20px;  border-bottom-width: 3px; border-left-width: 3px;  border-bottom-left-radius: 4px; }
+.corner.br { bottom: 64px; right: 20px; border-bottom-width: 3px; border-right-width: 3px; border-bottom-right-radius: 4px; }
+
+/* center */
+.scan-viewer-center {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 48px 20px 20px;
+}
+.scan-camera-icon {
+  opacity: 0.5;
+}
+.scan-viewer-label {
+  font-size: 13px;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+/* scanning laser animation */
+.scan-laser {
+  width: 80%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #3b82f6, transparent);
+  border-radius: 2px;
+  animation: laserScan 1.2s ease-in-out infinite alternate;
+}
+@keyframes laserScan {
+  0%   { transform: translateY(-60px); opacity: 0.4; }
+  100% { transform: translateY(60px);  opacity: 1; }
+}
+
+/* scanning border pulse */
+.scan-viewer.scanning {
+  box-shadow: 0 0 0 2px #3b82f6, 0 0 20px rgba(59,130,246,0.3);
+}
+
+/* bottom hint */
+.scan-hint {
+  background: rgba(255,255,255,0.07);
+  border-top: 1px solid rgba(255,255,255,0.08);
+  width: 100%;
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.scan-hint-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+.scan-hint-sub {
+  font-size: 11.5px;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+/* ── CAPTURE BUTTON ── */
+.scan-capture-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 15px;
+  border-radius: 14px;
+  background: #3b82f6;
+  color: white;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.15s, opacity 0.15s;
+  letter-spacing: 0.01em;
+}
+.scan-capture-btn:hover:not(.disabled) {
+  background: #2563eb;
+  transform: translateY(-1px);
+}
+.scan-capture-btn.disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+/* ── RESULT CARD ── */
+.scan-result-card {
+  background: white;
+  border-radius: 22px;
+  padding: 28px 24px 24px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.scan-success-icon {
+  width: 72px; height: 72px;
+  border-radius: 50%;
+  background: #d1fae5;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 16px;
+}
+
+.scan-success-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: #0f172a;
+  margin-bottom: 8px;
+  letter-spacing: -0.3px;
+}
+
+.scan-success-sub {
+  font-size: 13px;
+  color: #10b981;
+  font-weight: 500;
+  line-height: 1.6;
+  margin-bottom: 20px;
+}
+
+/* patient info box */
+.scan-patient-info {
+  width: 100%;
+  background: #f8fafc;
+  border-radius: 14px;
+  padding: 4px 16px;
+  margin-bottom: 20px;
+  text-align: left;
+}
+.scan-patient-row {
+  padding: 14px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.scan-patient-field {
+  font-size: 11.5px;
+  color: #94a3b8;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.scan-patient-value {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+}
+.scan-divider {
+  height: 1px;
+  background: #e2e8f0;
+}
+
+/* action buttons */
+.scan-view-btn {
+  width: 100%;
+  padding: 14px;
+  border-radius: 12px;
+  background: #10b981;
+  color: white;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  margin-bottom: 10px;
+  transition: background 0.15s, transform 0.15s;
+  letter-spacing: 0.02em;
+}
+.scan-view-btn:hover {
+  background: #059669;
+  transform: translateY(-1px);
+}
+
+.scan-rescan-btn {
+  width: 100%;
+  padding: 13px;
+  border-radius: 12px;
+  background: transparent;
+  color: #64748b;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1.5px solid #e2e8f0;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.scan-rescan-btn:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+/* ── BOTTOM NAV ── */
+.scan-bottom-nav {
+  position: fixed;
+  bottom: 0; left: 50%; transform: translateX(-50%);
+  width: 100%; max-width: 480px;
+  background: white;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  z-index: 50;
+  box-shadow: 0 -4px 16px rgba(0,0,0,0.07);
+}
+.scan-nav-item {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 10px 4px 13px; gap: 3px;
+  cursor: pointer; background: none; border: none;
+  transition: background 0.15s;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+}
+.scan-nav-item:hover { background: #f8fafc; }
+.scan-nav-label { font-size: 10px; font-weight: 600; }
+
+/* ════════════════════════════
+   TABLET  ≥ 640px
+════════════════════════════ */
+@media (min-width: 640px) {
+  .scan-page {
+    max-width: 100%;
+    background: #e8f5f5;
+    padding-bottom: 40px;
+  }
+  .scan-header   { padding: 32px 32px 16px; }
+  .scan-title    { font-size: 28px; }
+  .scan-subtitle { padding: 0 32px 24px; font-size: 14px; }
+  .scan-content  { padding: 0 32px; max-width: 520px; }
+  .scan-viewer   { min-height: 360px; }
+  .scan-bottom-nav { max-width: 100%; }
+}
+
+/* ════════════════════════════
+   DESKTOP  ≥ 1024px
+════════════════════════════ */
+@media (min-width: 1024px) {
+  .scan-header   { padding: 36px 40px 20px; }
+  .scan-subtitle { padding: 0 40px 28px; }
+  .scan-content  {
+    padding: 0 40px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 28px;
+    align-items: start;
+    max-width: 100%;
+  }
+  .scan-viewer   { min-height: 400px; }
+  .scan-viewer-wrap { gap: 16px; }
+  .scan-result-card { padding: 32px 28px; }
+  .scan-bottom-nav { display: none; }
+}

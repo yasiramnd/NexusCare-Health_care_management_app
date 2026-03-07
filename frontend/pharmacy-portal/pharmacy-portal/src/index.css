@@ -1,0 +1,38 @@
+/* NexusCare Pharmacy Portal — global resets */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Inter", system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: #f0fdf4;
+  color: #1e293b;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+a {
+  color: #059669;
+  text-decoration: none;
+}
+
+a:hover {
+  color: #10b981;
+  text-decoration: underline;
+}
