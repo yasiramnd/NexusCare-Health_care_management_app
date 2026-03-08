@@ -217,6 +217,7 @@ jobs:
       # ── Step 1: Write .env and firebase key from GitHub Secrets ─────────────
       - name: Provision secrets on EC2
         uses: appleboy/ssh-action@v1
+        timeout-minutes: 5
         env:
           AUTH_DB_HOST: ${{ secrets.AUTH_DB_HOST }}
           AUTH_DB_PORT: ${{ secrets.AUTH_DB_PORT }}
@@ -235,6 +236,8 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
+          timeout: 60s
+          command_timeout: 5m
           envs: AUTH_DB_HOST,AUTH_DB_PORT,AUTH_DB_NAME,AUTH_DB_USER,AUTH_DB_PASSWORD,HOSPITAL_DB_HOST,HOSPITAL_DB_PORT,HOSPITAL_DB_NAME,HOSPITAL_DB_USER,HOSPITAL_DB_PASSWORD,FIREBASE_API_KEY,FIREBASE_KEY_B64,JWT_SECRET
           script: |
             set -e
@@ -270,10 +273,13 @@ jobs:
       # ── Step 2: Pull image and run container ────────────────────────────────
       - name: Deploy container on EC2
         uses: appleboy/ssh-action@v1
+        timeout-minutes: 10
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
+          timeout: 60s
+          command_timeout: 10m
           script: |
             set -e
             APP_DIR="$HOME/nexuscare"
