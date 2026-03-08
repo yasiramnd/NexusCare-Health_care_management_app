@@ -416,6 +416,82 @@ def get_doctor_prescriptions():
 
 
 # ─────────────────────────────────────────────
+# POST /api/doctor/prescriptions — save medical record & prescriptions
+# ─────────────────────────────────────────────
+@doctor_portal_bp.post("/doctor/prescriptions")
+@token_required
+@role_required("DOCTOR")
+def create_prescription():
+    user_id = g.user_id
+    doctor_id = get_doctor_id_for_user(user_id)
+    if not doctor_id:
+        return jsonify({"error": "Doctor not found"}), 404
+
+    data = request.get_json() or {}
+    patient_id = data.get("patient_id")
+    appt_id = data.get("appointment_id")
+    diagnosis = data.get("diagnosis", "General Checkup")
+    notes = data.get("notes", "")
+    medications = data.get("medications", [])
+
+    if not patient_id:
+        return jsonify({"error": "patient_id is required"}), 400
+
+    conn = get_hospital_conn()
+    try:
+        conn.autocommit = False
+        with conn.cursor() as cur:
+            # 1. Create medical record
+            record_id = "REC" + uuid.uuid4().hex[:8].upper()
+            cur.execute("""
+                INSERT INTO medical_record (record_id, patient_id, doctor_id, diagnosis, notes, visit_date)
+                VALUES (%s, %s, %s, %s, %s, CURRENT_DATE)
+                RETURNING record_id
+            """, (record_id, patient_id, doctor_id, diagnosis, notes))
+            
+            # Fetch to ensure row is established in transaction
+            new_record_id = cur.fetchone()[0]
+            
+            # 2. Insert medications
+            for med in medications:
+                rx_id = "RX" + uuid.uuid4().hex[:8].upper()
+                cur.execute("""
+                    INSERT INTO prescription (
+                        prescription_id, record_id, medicine_name, dosage, 
+                        frequency, duration_days, status
+                    )
+                    VALUES (%s, %s, %s, %s, %s, %s, 'Issued')
+                """, (
+                    rx_id, new_record_id, 
+                    med.get("medicine_name"), 
+                    med.get("dosage"), 
+                    med.get("frequency"), 
+                    med.get("duration_days")
+                ))
+
+            # 3. Update appointment status if provided
+            if appt_id:
+                cur.execute("""
+                    UPDATE appointment 
+                    SET status = 'Conducted' 
+                    WHERE appointment_id = %s AND doctor_id = %s
+                """, (appt_id, doctor_id))
+
+            conn.commit()
+            return jsonify({
+                "message": "Prescription saved successfully",
+                "record_id": record_id
+            }), 201
+
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        return jsonify({"error": str(e)}), 500
+    finally:
+        put_hospital_conn(conn)
+
+
+# ─────────────────────────────────────────────
 # GET /api/doctor/lab-reports  — lab reports
 # ─────────────────────────────────────────────
 @doctor_portal_bp.get("/doctor/lab-reports")
