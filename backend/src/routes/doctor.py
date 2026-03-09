@@ -57,25 +57,21 @@ def get_doctor_me():
             # Get verification status
             conn2 = get_auth_conn()
             email = None
+            is_active = False
             try:
                 with conn2.cursor() as cur2:
                     cur2.execute(
-                        "SELECT email FROM credentials WHERE user_id = %s",
+                        "SELECT email, is_active FROM credentials WHERE user_id = %s",
                         (user_id,)
                     )
                     cred_row = cur2.fetchone()
-                    email = cred_row[0] if cred_row else None
+                    if cred_row:
+                        email = cred_row[0]
+                        is_active = cred_row[1]
             finally:
                 put_auth_conn(conn2)
 
-            # Get verification status from hospital db
-            cur.execute("""
-                SELECT status FROM verification_request
-                WHERE applicant_user_id = %s
-                ORDER BY submitted_at DESC LIMIT 1
-            """, (user_id,))
-            vr = cur.fetchone()
-            verification = vr[0] if vr else "Pending"
+            verification = "Approved" if is_active else "Pending"
 
             return jsonify({
                 "doctor_id": row[0],
@@ -124,10 +120,12 @@ def update_doctor_me():
             ))
             cur.execute("""
                 UPDATE doctor SET
-                    specialization = COALESCE(%s, specialization)
+                    specialization = COALESCE(%s, specialization),
+                    image_url = COALESCE(%s, image_url)
                 WHERE user_id = %s
             """, (
                 data.get("specialization"),
+                data.get("image_url"),
                 user_id
             ))
             conn.commit()
@@ -410,82 +408,6 @@ def get_doctor_prescriptions():
             ]
         })
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
-    finally:
-        put_hospital_conn(conn)
-
-
-# ─────────────────────────────────────────────
-# POST /api/doctor/prescriptions — save medical record & prescriptions
-# ─────────────────────────────────────────────
-@doctor_portal_bp.post("/doctor/prescriptions")
-@token_required
-@role_required("DOCTOR")
-def create_prescription():
-    user_id = g.user_id
-    doctor_id = get_doctor_id_for_user(user_id)
-    if not doctor_id:
-        return jsonify({"error": "Doctor not found"}), 404
-
-    data = request.get_json() or {}
-    patient_id = data.get("patient_id")
-    appt_id = data.get("appointment_id")
-    diagnosis = data.get("diagnosis", "General Checkup")
-    notes = data.get("notes", "")
-    medications = data.get("medications", [])
-
-    if not patient_id:
-        return jsonify({"error": "patient_id is required"}), 400
-
-    conn = get_hospital_conn()
-    try:
-        conn.autocommit = False
-        with conn.cursor() as cur:
-            # 1. Create medical record
-            record_id = "REC" + uuid.uuid4().hex[:8].upper()
-            cur.execute("""
-                INSERT INTO medical_record (record_id, patient_id, doctor_id, diagnosis, notes, visit_date)
-                VALUES (%s, %s, %s, %s, %s, CURRENT_DATE)
-                RETURNING record_id
-            """, (record_id, patient_id, doctor_id, diagnosis, notes))
-            
-            # Fetch to ensure row is established in transaction
-            new_record_id = cur.fetchone()[0]
-            
-            # 2. Insert medications
-            for med in medications:
-                rx_id = "RX" + uuid.uuid4().hex[:8].upper()
-                cur.execute("""
-                    INSERT INTO prescription (
-                        prescription_id, record_id, medicine_name, dosage, 
-                        frequency, duration_days, status
-                    )
-                    VALUES (%s, %s, %s, %s, %s, %s, 'Issued')
-                """, (
-                    rx_id, new_record_id, 
-                    med.get("medicine_name"), 
-                    med.get("dosage"), 
-                    med.get("frequency"), 
-                    med.get("duration_days")
-                ))
-
-            # 3. Update appointment status if provided
-            if appt_id:
-                cur.execute("""
-                    UPDATE appointment 
-                    SET status = 'Conducted' 
-                    WHERE appointment_id = %s AND doctor_id = %s
-                """, (appt_id, doctor_id))
-
-            conn.commit()
-            return jsonify({
-                "message": "Prescription saved successfully",
-                "record_id": record_id
-            }), 201
-
-    except Exception as e:
-        if conn:
-            conn.rollback()
         return jsonify({"error": str(e)}), 500
     finally:
         put_hospital_conn(conn)
@@ -986,6 +908,244 @@ def delete_availability(availability_id):
         return jsonify({"message": "Availability slot deleted"})
     except Exception as e:
         conn.rollback()
+        return jsonify({"error": str(e)}), 500
+    finally:
+        put_hospital_conn(conn)
+
+
+# ─────────────────────────────────────────────
+# POST /api/doctor/consultation  — save a consultation
+# Inserts into medical_record + prescription tables
+# ─────────────────────────────────────────────
+@doctor_portal_bp.post("/doctor/consultation")
+@token_required
+@role_required("DOCTOR")
+def save_consultation():
+    user_id = g.user_id
+    doctor_id = get_doctor_id_for_user(user_id)
+    if not doctor_id:
+        return jsonify({"error": "Doctor not found"}), 404
+
+    data = request.get_json() or {}
+
+    patient_id = data.get("patient_id")
+    symptoms = data.get("symptoms", "")
+    diagnosis = data.get("diagnosis", "")
+    secondary_diagnosis = data.get("secondary_diagnosis", "")
+    icd_code = data.get("icd_code", "")
+    clinical_summary = data.get("clinical_summary", "")
+    notes = data.get("notes", "")
+    blood_pressure = data.get("blood_pressure", "")
+    heart_rate = data.get("heart_rate", "")
+    temperature = data.get("temperature", "")
+    medications = data.get("medications", [])
+    lab_tests = data.get("lab_tests", [])
+    documents = data.get("documents", [])
+
+    if not patient_id:
+        return jsonify({"error": "patient_id is required"}), 400
+    if not diagnosis:
+        return jsonify({"error": "diagnosis is required"}), 400
+
+    # Build comprehensive notes field from all the text fields
+    notes_parts = []
+    if symptoms:
+        notes_parts.append(f"Symptoms: {symptoms}")
+    if notes:
+        notes_parts.append(f"Clinical Notes: {notes}")
+    if blood_pressure:
+        notes_parts.append(f"BP: {blood_pressure}")
+    if heart_rate:
+        notes_parts.append(f"HR: {heart_rate}")
+    if temperature:
+        notes_parts.append(f"Temp: {temperature}")
+    if secondary_diagnosis:
+        notes_parts.append(f"Secondary Diagnosis: {secondary_diagnosis}")
+    if icd_code:
+        notes_parts.append(f"ICD-10: {icd_code}")
+    if clinical_summary:
+        notes_parts.append(f"Summary: {clinical_summary}")
+    if lab_tests:
+        notes_parts.append(f"Lab Tests Requested: {', '.join(lab_tests)}")
+    
+    if documents:
+        notes_parts.append("Attached Documents:")
+        for doc in documents:
+            doc_name = doc.get("name", "Document")
+            doc_url = doc.get("url", "")
+            if doc_url:
+                notes_parts.append(f"- {doc_name}: {doc_url}")
+
+    full_notes = "\n".join(notes_parts) if notes_parts else None
+
+    conn = get_hospital_conn()
+    try:
+        with conn.cursor() as cur:
+            # 1. Verify patient exists
+            cur.execute(
+                "SELECT patient_id FROM patient WHERE patient_id = %s",
+                (patient_id,)
+            )
+            if not cur.fetchone():
+                return jsonify({"error": "Patient not found"}), 404
+
+            # 2. Insert medical record (record_id auto-generated by trigger)
+            today = date.today()
+            cur.execute("""
+                INSERT INTO medical_record
+                    (patient_id, doctor_id, diagnosis, notes, visit_date)
+                VALUES (%s, %s, %s, %s, %s)
+                RETURNING record_id
+            """, (patient_id, doctor_id, diagnosis, full_notes, today))
+            record_id = cur.fetchone()[0]
+
+            # 3. Insert prescriptions (prescription_id auto-generated by trigger)
+            prescription_ids = []
+            for med in medications:
+                med_name = med.get("name", "").strip()
+                med_dosage = med.get("dosage", "").strip()
+                med_frequency = med.get("frequency", "").strip() or None
+                med_duration = med.get("duration", "").strip() if med.get("duration") else None
+
+                if not med_name or not med_dosage:
+                    continue  # Skip empty medication entries
+
+                # Parse duration to integer if possible
+                duration_days = None
+                if med_duration:
+                    import re
+                    nums = re.findall(r'\d+', med_duration)
+                    if nums:
+                        duration_days = int(nums[0])
+
+                cur.execute("""
+                    INSERT INTO prescription
+                        (record_id, medicine_name, dosage, frequency, duration_days, status)
+                    VALUES (%s, %s, %s, %s, %s, 'Issued')
+                    RETURNING prescription_id
+                """, (record_id, med_name, med_dosage, med_frequency, duration_days))
+                prescription_ids.append(cur.fetchone()[0])
+
+            conn.commit()
+
+        return jsonify({
+            "message": "Consultation saved successfully",
+            "record_id": record_id,
+            "prescription_ids": prescription_ids,
+        }), 201
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"error": str(e)}), 500
+    finally:
+        put_hospital_conn(conn)
+
+
+# ─────────────────────────────────────────────
+# GET /api/doctor/consultation/<patient_id>  — get consultation history
+# ─────────────────────────────────────────────
+@doctor_portal_bp.get("/doctor/consultation/<patient_id>")
+@token_required
+@role_required("DOCTOR")
+def get_consultation_data(patient_id):
+    user_id = g.user_id
+    doctor_id = get_doctor_id_for_user(user_id)
+    if not doctor_id:
+        return jsonify({"error": "Doctor not found"}), 404
+
+    conn = get_hospital_conn()
+    try:
+        with conn.cursor() as cur:
+            # Get patient info
+            cur.execute("""
+                SELECT
+                    p.patient_id, u.name, p.nic, p.date_of_birth, p.gender,
+                    u.contact_no1, u.address,
+                    e.blood_group, e.allergies, e.chronic_conditions,
+                    e.contact_name, e.contact_phone
+                FROM patient p
+                JOIN users u ON p.user_id = u.user_id
+                LEFT JOIN emergency_profile e ON p.patient_id = e.patient_id
+                WHERE p.patient_id = %s
+            """, (patient_id,))
+            row = cur.fetchone()
+            if not row:
+                return jsonify({"error": "Patient not found"}), 404
+
+            patient = {
+                "patient_id": row[0],
+                "name": row[1],
+                "nic": row[2],
+                "dob": str(row[3]),
+                "gender": row[4],
+                "phone": row[5],
+                "address": row[6],
+                "blood_group": row[7],
+                "allergies": row[8],
+                "chronic_conditions": row[9],
+                "emergency_contact_name": row[10],
+                "emergency_contact_phone": row[11],
+            }
+
+            # Get past consultations (medical records with prescriptions)
+            cur.execute("""
+                SELECT
+                    mr.record_id,
+                    mr.diagnosis,
+                    mr.notes,
+                    mr.visit_date,
+                    JSON_AGG(
+                        JSON_BUILD_OBJECT(
+                            'prescription_id', pr.prescription_id,
+                            'medicine_name', pr.medicine_name,
+                            'dosage', pr.dosage,
+                            'frequency', pr.frequency,
+                            'duration_days', pr.duration_days,
+                            'status', pr.status
+                        )
+                    ) FILTER (WHERE pr.prescription_id IS NOT NULL) AS medications
+                FROM medical_record mr
+                LEFT JOIN prescription pr ON pr.record_id = mr.record_id
+                WHERE mr.patient_id = %s
+                GROUP BY mr.record_id, mr.diagnosis, mr.notes, mr.visit_date
+                ORDER BY mr.visit_date DESC
+                LIMIT 20
+            """, (patient_id,))
+            mr_rows = cur.fetchall()
+            past_records = [
+                {
+                    "record_id": r[0],
+                    "diagnosis": r[1],
+                    "notes": r[2],
+                    "date": str(r[3]),
+                    "medications": r[4] or [],
+                }
+                for r in mr_rows
+            ]
+
+            # Check if patient has an active appointment today with this doctor
+            cur.execute("""
+                SELECT appointment_id, appointment_time, status
+                FROM appointment
+                WHERE patient_id = %s AND doctor_id = %s
+                  AND appointment_date = CURRENT_DATE
+                ORDER BY appointment_time
+                LIMIT 1
+            """, (patient_id, doctor_id))
+            appt_row = cur.fetchone()
+            active_appointment = None
+            if appt_row:
+                active_appointment = {
+                    "appointment_id": appt_row[0],
+                    "time": str(appt_row[1]),
+                    "status": appt_row[2],
+                }
+
+        return jsonify({
+            "patient": patient,
+            "past_records": past_records,
+            "active_appointment": active_appointment,
+        })
+    except Exception as e:
         return jsonify({"error": str(e)}), 500
     finally:
         put_hospital_conn(conn)
