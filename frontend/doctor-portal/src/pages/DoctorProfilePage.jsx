@@ -18,6 +18,7 @@ export default function DoctorProfilePage() {
     const [editData, setEditData] = useState({});
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [uploadingImage, setUploadingImage] = useState(false);
     const [error, setError] = useState("");
     const [successMsg, setSuccessMsg] = useState("");
     const [pwModal, setPwModal] = useState(false);
@@ -67,6 +68,48 @@ export default function DoctorProfilePage() {
         }
     }
 
+    async function handlePhotoUpload(e) {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setUploadingImage(true);
+        setError("");
+        try {
+            const formData = new FormData();
+            formData.append("file", file);
+
+            const token = localStorage.getItem("access_token");
+            const base = import.meta.env.VITE_API_URL || "";
+
+            // Upload file
+            const uploadRes = await fetch(`${base}/api/upload`, {
+                method: "POST",
+                headers: { "Authorization": `Bearer ${token}` },
+                body: formData,
+            });
+            const uploadData = await uploadRes.json();
+            if (!uploadRes.ok) throw new Error(uploadData.error || "Upload failed");
+
+            // Update profile with new image_url
+            const updatedUrl = uploadData.url;
+            await apiFetch("/api/doctor/me", {
+                method: "PATCH",
+                body: JSON.stringify({ image_url: updatedUrl }),
+            });
+
+            // Refresh profile from server
+            const updatedProfile = await apiFetch("/api/doctor/me");
+            setProfile(updatedProfile);
+            setSuccessMsg("Photo uploaded successfully!");
+            setTimeout(() => setSuccessMsg(""), 3000);
+        } catch (err) {
+            setError("Failed to upload photo: " + err.message);
+        } finally {
+            setUploadingImage(false);
+            e.target.value = ""; // reset input
+        }
+    }
+
     if (loading) {
         return <PortalLayout title="My Profile" subtitle="Manage your account"><Spinner /></PortalLayout>;
     }
@@ -91,7 +134,11 @@ export default function DoctorProfilePage() {
                 {/* Left: Avatar & Status */}
                 <div>
                     <div className="p-card" style={{ textAlign: "center", marginBottom: 20 }}>
-                        <div className="avatar avatar-xl" style={{ margin: "0 auto 16px", fontSize: 28 }}>{initials}</div>
+                        {profile?.image_url ? (
+                            <img src={profile.image_url} alt="Profile" className="avatar avatar-xl" style={{ margin: "0 auto 16px", objectFit: "cover", width: 80, height: 80, borderRadius: "50%" }} />
+                        ) : (
+                            <div className="avatar avatar-xl" style={{ margin: "0 auto 16px", fontSize: 28 }}>{initials}</div>
+                        )}
                         <h2 style={{ margin: "0 0 4px", fontSize: 20, fontWeight: 800 }}>{profile?.name || "—"}</h2>
                         <p style={{ margin: "0 0 8px", color: "var(--p-text-dim)", fontSize: 14 }}>{profile?.specialization || "—"}</p>
                         <span className={`badge ${verification === "Approved" ? "badge-green" : verification === "Pending" ? "badge-amber" : "badge-red"}`}
@@ -99,8 +146,14 @@ export default function DoctorProfilePage() {
                             {verification === "Approved" ? "✅" : verification === "Pending" ? "⏳" : "❌"} {verification}
                         </span>
                         <div style={{ marginTop: 20 }}>
-                            <button className="btn btn-sm btn-secondary" style={{ width: "100%", justifyContent: "center" }}>
-                                📷 Upload Photo
+                            <input type="file" id="photo-upload" accept="image/*" style={{ display: "none" }} onChange={handlePhotoUpload} />
+                            <button
+                                className="btn btn-sm btn-secondary"
+                                style={{ width: "100%", justifyContent: "center" }}
+                                onClick={() => document.getElementById("photo-upload").click()}
+                                disabled={uploadingImage}
+                            >
+                                {uploadingImage ? "⏳ Uploading..." : "📷 Upload Photo"}
                             </button>
                         </div>
                     </div>

@@ -37,6 +37,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
         <Route path="/doctor/scan" element={<Protected><PatientLookup /></Protected>} />
         <Route path="/doctor/appointments" element={<Protected><AppointmentsPage /></Protected>} />
         <Route path="/doctor/consultation" element={<Protected><ConsultationPage /></Protected>} />
+        <Route path="/doctor/consultation/:patientId" element={<Protected><ConsultationPage /></Protected>} />
         <Route path="/doctor/prescriptions" element={<Protected><PrescriptionsPage /></Protected>} />
         <Route path="/doctor/labs" element={<Protected><LabReportsPage /></Protected>} />
         <Route path="/doctor/profile" element={<Protected><DoctorProfilePage /></Protected>} />
