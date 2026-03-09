@@ -1,1 +1,1 @@
-use 'npm start' to run
+use 'npm start' to run to admin portal
