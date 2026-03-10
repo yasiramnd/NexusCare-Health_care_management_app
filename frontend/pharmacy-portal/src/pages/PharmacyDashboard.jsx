@@ -124,25 +124,6 @@ export default function PharmacyDashboard() {
         navigate("/pharmacy/login");
     }
 
-    // ── Page Router ──────────────────────────────────────────────────────────
-    if (currentPage === "prescriptions") {
-        return <Prescriptions onBack={() => { setCurrentPage("dashboard"); setActiveNav("Home"); }} />;
-    }
-    if (currentPage === "inventory") {
-        return <Inventory onBack={() => { setCurrentPage("dashboard"); setActiveNav("Home"); }} />;
-    }
-    if (currentPage === "scanid") {
-        return (
-            <ScanID
-                onBack={() => { setCurrentPage("dashboard"); setActiveNav("Home"); }}
-                onViewPrescriptions={() => setCurrentPage("prescriptions")}
-            />
-        );
-    }
-    if (currentPage === "priorityorders") {
-        return <PriorityOrders onBack={() => { setCurrentPage("dashboard"); setActiveNav("Home"); }} />;
-    }
-
     const handleNav = (item) => {
         setActiveNav(item.label);
         if (item.page && item.page !== "dashboard") {
@@ -150,6 +131,64 @@ export default function PharmacyDashboard() {
         } else {
             setCurrentPage("dashboard");
         }
+    };
+
+    const renderDashboardContent = () => {
+        if (currentPage === "prescriptions") {
+            return <Prescriptions onBack={() => { setCurrentPage("dashboard"); setActiveNav("Home"); }} />;
+        }
+        if (currentPage === "inventory") {
+            return <Inventory onBack={() => { setCurrentPage("dashboard"); setActiveNav("Home"); }} />;
+        }
+        if (currentPage === "scanid") {
+            return (
+                <ScanID
+                    onBack={() => { setCurrentPage("dashboard"); setActiveNav("Home"); }}
+                    onViewPrescriptions={() => setCurrentPage("prescriptions")}
+                />
+            );
+        }
+        if (currentPage === "priorityorders") {
+            return <PriorityOrders onBack={() => { setCurrentPage("dashboard"); setActiveNav("Home"); }} />;
+        }
+        // Default dashboard
+        return (
+            <>
+                {/* STATS */}
+                <div className="ph-stats-grid">
+                    {stats.map(s => (
+                        <div className="ph-stat-card" key={s.label}>
+                            <div className="ph-stat-icon-wrap" style={{ background: s.iconBg }}>
+                                {s.icon(isDesktop ? 28 : isTablet ? 26 : 24)}
+                            </div>
+                            <div className="ph-stat-value">{s.value}</div>
+                            <div className="ph-stat-label">{s.label}</div>
+                            <div className="ph-stat-trend">{s.trend}</div>
+                        </div>
+                    ))}
+                </div>
+
+                {/* QUICK ACTIONS */}
+                <div className="ph-section-gap">
+                    <div className="ph-section-title">Quick Actions</div>
+                    <div className="ph-actions-row">
+                        {quickActions.map(a => (
+                            <div
+                                className="ph-action-item"
+                                key={a.label}
+                                onClick={() => a.page && setCurrentPage(a.page)}
+                                style={{ cursor: a.page ? "pointer" : "default" }}
+                            >
+                                <div className="ph-action-btn" style={{ background: a.bg }}>
+                                    {a.icon(isTablet || isDesktop ? 26 : 22)}
+                                </div>
+                                <span className="ph-action-label">{a.label}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </>
+        );
     };
 
     // ── Dashboard render ──────────────────────────────────────────────────────
@@ -274,39 +313,7 @@ export default function PharmacyDashboard() {
                         )}
 
                         <div className="ph-page-body">
-                            {/* STATS */}
-                            <div className="ph-stats-grid">
-                                {stats.map(s => (
-                                    <div className="ph-stat-card" key={s.label}>
-                                        <div className="ph-stat-icon-wrap" style={{ background: s.iconBg }}>
-                                            {s.icon(isDesktop ? 28 : isTablet ? 26 : 24)}
-                                        </div>
-                                        <div className="ph-stat-value">{s.value}</div>
-                                        <div className="ph-stat-label">{s.label}</div>
-                                        <div className="ph-stat-trend">{s.trend}</div>
-                                    </div>
-                                ))}
-                            </div>
-
-                            {/* QUICK ACTIONS */}
-                            <div className="ph-section-gap">
-                                <div className="ph-section-title">Quick Actions</div>
-                                <div className="ph-actions-row">
-                                    {quickActions.map(a => (
-                                        <div
-                                            className="ph-action-item"
-                                            key={a.label}
-                                            onClick={() => a.page && setCurrentPage(a.page)}
-                                            style={{ cursor: a.page ? "pointer" : "default" }}
-                                        >
-                                            <div className="ph-action-btn" style={{ background: a.bg }}>
-                                                {a.icon(isTablet || isDesktop ? 26 : 22)}
-                                            </div>
-                                            <span className="ph-action-label">{a.label}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
+                            {renderDashboardContent()}
                         </div>
                     </div>
 
