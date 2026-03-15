@@ -1,1 +1,0 @@
-/* App.jsx is no longer used — routing is handled in main.jsx */

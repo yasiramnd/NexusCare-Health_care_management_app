@@ -45,6 +45,7 @@ export default function PharmacyLoginPage() {
             }
 
             localStorage.setItem("ph_access_token", token);
+            if (data.refresh_token) localStorage.setItem("ph_refresh_token", data.refresh_token);
             if (role) localStorage.setItem("ph_role", role);
             if (data.user_id) localStorage.setItem("ph_user_id", data.user_id);
 
