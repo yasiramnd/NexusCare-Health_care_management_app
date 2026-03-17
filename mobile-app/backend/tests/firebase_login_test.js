@@ -9,7 +9,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 
-signInWithEmailAndPassword(auth, "test99@nexuscare.com", "123456789")
+signInWithEmailAndPassword(auth, "email", "password")
 .then(async (userCredential) => {
 
     const idToken = await userCredential.user.getIdToken();
