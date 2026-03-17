@@ -2,8 +2,8 @@ import { initializeApp } from "firebase/app";
 import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBz9vwMTGw8g6hVJhLzVlFKh2_IzzZ6F7M",
-  authDomain: "nexuscare-3791f.firebaseapp.com"
+  apiKey: "REPLACE-WITH-API-KEY",
+  authDomain: "REPLACE-WITH-DOMAIN"
 };
 
 const app = initializeApp(firebaseConfig);
