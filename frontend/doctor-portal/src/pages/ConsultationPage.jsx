@@ -107,7 +107,7 @@ export default function ConsultationPage() {
             const token = localStorage.getItem("access_token");
             const base = import.meta.env.VITE_API_URL || "";
 
-            const uploadRes = await fetch(`${base}/api/upload`, {
+            const uploadRes = await fetch(`${base}/api/doctor/consultation-documents/upload`, {
                 method: "POST",
                 headers: { "Authorization": `Bearer ${token}` },
                 body: formData,
