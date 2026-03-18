@@ -33,7 +33,7 @@ _default_origins = [
     "https://nexuscare-doctor-portal.vercel.app",
     "https://nexuscare-pharmacy-portal.vercel.app",
     # EC2 via nip.io (no custom domain needed)
-    "https://13.60.206.154.nip.io",
+    "https://13.60.80.212.nip.io",
     # local development
     "http://localhost:5173", "http://127.0.0.1:5173",   # doctor portal
     "http://localhost:5174", "http://127.0.0.1:5174",   # pharmacy portal

@@ -506,7 +506,7 @@ def get_doctor_prescriptions():
                 WHERE mr.doctor_id = %s
                 GROUP BY mr.record_id, u.name, p.patient_id, mr.visit_date
                 ORDER BY mr.visit_date DESC
-            """, (doctor_id, doctor_id))
+            """, (doctor_id,))
             rows = cur.fetchall()
 
             # Stats
@@ -618,7 +618,7 @@ def get_doctor_lab_reports():
                     WHERE lrp.doctor_id = %s
                 ) x
                 ORDER BY x.uploaded_date DESC NULLS LAST
-            """, (doctor_id,))
+            """, (doctor_id, doctor_id))
             rows = cur.fetchall()
 
             rows = [r for r in rows if _lab_report_file_exists(r[5])]
