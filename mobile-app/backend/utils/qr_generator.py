@@ -1,7 +1,6 @@
 # ==========================================
-# Generate QR → Save in qr_images folder
-# → Upload to Supabase
-# → Update qr_code column in patients table
+# QR Generator Utility
+# Generate → Upload → Save URL in DB
 # ==========================================
 
 import os
@@ -27,62 +26,60 @@ SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 SUPABASE_BUCKET = os.getenv("SUPABASE_BUCKET")
 
-# Create Supabase client
+# Supabase client
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # ==========================
-# Define QR Save Location
+# QR Folder Setup
 # ==========================
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 QR_FOLDER = os.path.join(BASE_DIR, "qr_images")
-
-# Create folder if it does not exist
 os.makedirs(QR_FOLDER, exist_ok=True)
 
 
 # ==========================
-# Check if Patient Exists
+# Check Patient Exists
 # ==========================
 
 def patient_exists(patient_id):
-    connection = psycopg2.connect(
+    conn = psycopg2.connect(
         host=DB_HOST,
         database=DB_NAME,
         user=DB_USER,
         password=DB_PASSWORD,
         port=DB_PORT
     )
+    cur = conn.cursor()
 
-    cursor = connection.cursor()
-    cursor.execute("SELECT 1 FROM patient WHERE patient_id = %s;", (patient_id,))
-    result = cursor.fetchone()
+    cur.execute("SELECT 1 FROM patient WHERE patient_id = %s;", (patient_id,))
+    result = cur.fetchone()
 
-    cursor.close()
-    connection.close()
+    cur.close()
+    conn.close()
 
     return result is not None
 
 
 # ==========================
-# Generate QR Code Image
+# Generate QR Image
 # ==========================
 
 def generate_qr_image(patient_id):
 
-    emergency_url = f"http://nexuscare.lk/emergency/{patient_id}"
+    url = f"http://nexuscare.lk/emergency/{patient_id}"
 
     filename = f"{patient_id}.png"
     file_path = os.path.join(QR_FOLDER, filename)
 
-    img = qrcode.make(emergency_url)
+    img = qrcode.make(url)
     img.save(file_path)
 
     return file_path, filename
 
 
 # ==========================
-# Upload to Supabase Storage
+# Upload to Supabase
 # ==========================
 
 def upload_to_supabase(file_path, filename):
@@ -100,60 +97,56 @@ def upload_to_supabase(file_path, filename):
 
 
 # ==========================
-# Update qr_code Column
+# Update DB
 # ==========================
 
 def update_qr_url(patient_id, qr_url):
 
-    connection = psycopg2.connect(
+    conn = psycopg2.connect(
         host=DB_HOST,
         database=DB_NAME,
         user=DB_USER,
         password=DB_PASSWORD,
         port=DB_PORT
     )
+    cur = conn.cursor()
 
-    cursor = connection.cursor()
-
-    cursor.execute(
+    cur.execute(
         "UPDATE patient SET qr_code = %s WHERE patient_id = %s;",
         (qr_url, patient_id)
     )
 
-    connection.commit()
-
-    cursor.close()
-    connection.close()
+    conn.commit()
+    cur.close()
+    conn.close()
 
 
 # ==========================
-# Main Execution
+# MAIN FUNCTION (Reusable)
 # ==========================
 
-def main():
+def generate_and_upload_qr(patient_id):
 
-    patient_id = input("Enter patient ID: ").strip()
+    try:
+        if not patient_exists(patient_id):
+            print("Patient not found")
+            return None
 
-    if not patient_exists(patient_id):
-        print("Patient not found.")
-        return
+        # Generate QR
+        file_path, filename = generate_qr_image(patient_id)
 
-    # Step 1: Generate QR
-    file_path, filename = generate_qr_image(patient_id)
+        # Upload
+        qr_url = upload_to_supabase(file_path, filename)
 
-    # Step 2: Upload to Supabase
-    qr_url = upload_to_supabase(file_path, filename)
+        # Update DB
+        update_qr_url(patient_id, qr_url)
 
-    # Step 3: Update database
-    update_qr_url(patient_id, qr_url)
+        # ✅ Delete local file after upload
+        if os.path.exists(file_path):
+            os.remove(file_path)
 
-    # Optional: remove local file after upload
-    # os.remove(file_path)
+        return qr_url
 
-    print("QR successfully generated.")
-    print("Saved locally at:", file_path)
-    print("Supabase URL:", qr_url)
-
-
-if __name__ == "__main__":
-    main()
+    except Exception as e:
+        print("Error:", e)
+        return None
