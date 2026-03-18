@@ -1,7 +1,10 @@
 import os
+from pathlib import Path
 from dotenv import load_dotenv
 
-load_dotenv()
+# Always load backend/.env regardless of current working directory.
+_BACKEND_DIR = Path(__file__).resolve().parents[3]
+load_dotenv(dotenv_path=_BACKEND_DIR / ".env")
 
 class Config:
     AUTH_DB_CONFIG = {

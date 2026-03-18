@@ -1,4 +1,5 @@
 from flask import Blueprint, request, jsonify
+import psycopg2
 from src.auth_service.db.hospital_db import get_hospital_conn, put_hospital_conn
 
 doctor_bp = Blueprint("doctor_bp", __name__)
@@ -10,10 +11,30 @@ def get_patient_by_qr():
     if not qr_value:
         return jsonify({"error": "QR value is required"}), 400
 
-    conn = get_hospital_conn()
+    conn = None
     try:
+        conn = get_hospital_conn()
         with conn.cursor() as cur:
-            cur.execute("""
+            # Some DBs may not have the QR_code column yet; check schema first.
+            cur.execute(
+                """
+                SELECT EXISTS (
+                    SELECT 1
+                    FROM information_schema.columns
+                    WHERE table_name = 'patient'
+                      AND column_name = 'qr_code'
+                )
+                """
+            )
+            has_qr_code = bool(cur.fetchone()[0])
+
+            where_clause = "p.patient_id = %s"
+            params = [qr_value]
+            if has_qr_code:
+                where_clause += " OR p.qr_code = %s"
+                params.append(qr_value)
+
+            cur.execute(f"""
                 SELECT
                     p.patient_id,
                     u.name,
@@ -29,9 +50,8 @@ def get_patient_by_qr():
                 FROM patient p
                 JOIN users u ON p.user_id = u.user_id
                 LEFT JOIN emergency_profile e ON p.patient_id = e.patient_id
-                WHERE p.patient_id = %s
-                   OR p.QR_code = %s
-            """, (qr_value, qr_value))
+                WHERE {where_clause}
+            """, tuple(params))
             patient = cur.fetchone()
 
         if not patient:
@@ -52,7 +72,9 @@ def get_patient_by_qr():
             "allergies":          patient[9],
             "chronic_conditions": patient[10],
         })
+    except psycopg2.OperationalError:
+        return jsonify({"error": "Hospital database unavailable"}), 503
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": f"Patient lookup failed: {str(e)}"}), 500
     finally:
         put_hospital_conn(conn)

@@ -1,11 +1,157 @@
-from flask import Blueprint, request, jsonify, g
+from flask import Blueprint, request, jsonify, g, current_app
 from src.auth_service.auth.middleware import token_required, role_required
 from src.auth_service.db.hospital_db import get_hospital_conn, put_hospital_conn
 from src.auth_service.db.auth_db import get_auth_conn, put_auth_conn
+from src.utils.supabase_storage import (
+    SupabaseStorageError,
+    upload_bytes,
+    extract_object_path_from_url,
+    object_exists,
+)
+from werkzeug.utils import secure_filename
 from datetime import date
-import uuid
+import uuid, os
 
 doctor_portal_bp = Blueprint("doctor_portal_bp", __name__)
+
+
+def _lab_report_file_exists(file_url: str) -> bool:
+    url = (file_url or "").strip()
+    if not url:
+        return False
+
+    if url.startswith("/uploads/"):
+        rel_path = url.replace("/uploads/", "", 1)
+        abs_path = os.path.join(current_app.config.get("UPLOAD_FOLDER", "uploads"), rel_path)
+        return os.path.exists(abs_path)
+
+    # Keep non-Supabase URLs visible for backward compatibility.
+    if "/storage/v1/object/" not in url:
+        return True
+
+    object_path = extract_object_path_from_url("lab-report", url)
+    if not object_path:
+        return False
+
+    try:
+        return object_exists("lab-report", object_path)
+    except SupabaseStorageError:
+        return False
+
+
+@doctor_portal_bp.post("/doctor/consultation-documents/upload")
+@token_required
+@role_required("DOCTOR")
+def upload_consultation_document():
+    user_id = g.user_id
+    doctor_id = get_doctor_id_for_user(user_id)
+    if not doctor_id:
+        return jsonify({"error": "Doctor not found"}), 404
+
+    file = request.files.get("file")
+    if not file or not file.filename:
+        return jsonify({"error": "No file uploaded"}), 400
+
+    safe_name = secure_filename(file.filename)
+    if not safe_name:
+        return jsonify({"error": "Invalid file name"}), 400
+
+    max_mb = int(current_app.config.get("MAX_REPORT_UPLOAD_MB", 20))
+    size_mb = (request.content_length or 0) / (1024 * 1024)
+    if size_mb > max_mb:
+        return jsonify({"error": f"File is too large. Max {max_mb}MB"}), 400
+
+    object_path = f"doctor-consultation/{doctor_id}/{uuid.uuid4().hex}_{safe_name}"
+    try:
+        content_type = file.mimetype or "application/octet-stream"
+        file_url = upload_bytes("medical-docs", object_path, file.read(), content_type)
+    except SupabaseStorageError as e:
+        return jsonify({"error": str(e)}), 500
+
+    return jsonify({"url": file_url, "filename": safe_name, "storage_provider": "supabase"}), 201
+
+
+# ─────────────────────────────────────────────
+# POST /api/doctor/register-request
+# Called during registration (no auth token yet)
+# ─────────────────────────────────────────────
+@doctor_portal_bp.post("/doctor/register-request")
+def doctor_register_request():
+    user_id = request.form.get("user_id")
+    name = request.form.get("name")
+    contact_no1 = request.form.get("contact_no1")
+    contact_no2 = request.form.get("contact_no2", "")
+    address = request.form.get("address")
+    license_no = request.form.get("license_no")
+    nic_no = request.form.get("nic_no")
+    gender = request.form.get("gender")
+    specialization = request.form.get("specialization")
+
+    if not all([user_id, name, contact_no1, address, license_no, nic_no, gender, specialization]):
+        return jsonify({"error": "Missing required fields"}), 400
+
+    # Verify user_id exists in auth credentials
+    auth_conn = get_auth_conn()
+    try:
+        with auth_conn.cursor() as cur:
+            cur.execute("SELECT role FROM credentials WHERE user_id = %s", (user_id,))
+            row = cur.fetchone()
+            if not row or row[0] != "DOCTOR":
+                return jsonify({"error": "Invalid user_id or not a doctor account"}), 400
+    finally:
+        put_auth_conn(auth_conn)
+
+    # Handle certificate file upload
+    certification_url = ""
+    cert_file = request.files.get("certificate")
+    if cert_file and cert_file.filename:
+        filename = secure_filename(cert_file.filename)
+        unique_filename = f"{uuid.uuid4().hex}_{filename}"
+        upload_folder = current_app.config.get("UPLOAD_FOLDER", "uploads")
+        file_path = os.path.join(upload_folder, unique_filename)
+        cert_file.save(file_path)
+        certification_url = f"/uploads/{unique_filename}"
+
+    # Handle optional image file
+    image_url = None
+    img_file = request.files.get("image")
+    if img_file and img_file.filename:
+        filename = secure_filename(img_file.filename)
+        unique_filename = f"{uuid.uuid4().hex}_{filename}"
+        upload_folder = current_app.config.get("UPLOAD_FOLDER", "uploads")
+        file_path = os.path.join(upload_folder, unique_filename)
+        img_file.save(file_path)
+        image_url = f"/uploads/{unique_filename}"
+
+    conn = get_hospital_conn()
+    try:
+        with conn.cursor() as cur:
+            # Check if user already exists in hospital DB
+            cur.execute("SELECT user_id FROM users WHERE user_id = %s", (user_id,))
+            if not cur.fetchone():
+                cur.execute("""
+                    INSERT INTO users (user_id, name, contact_no1, contact_no2, address)
+                    VALUES (%s, %s, %s, %s, %s)
+                """, (user_id, name, contact_no1, contact_no2, address))
+
+            # Check if doctor record already exists
+            cur.execute("SELECT doctor_id FROM doctor WHERE user_id = %s", (user_id,))
+            if not cur.fetchone():
+                cur.execute("""
+                    INSERT INTO doctor
+                        (user_id, license_no, nic_no, gender, specialization,
+                         certification_url, image_url)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s)
+                """, (user_id, license_no, nic_no, gender, specialization,
+                      certification_url or "pending", image_url))
+
+            conn.commit()
+        return jsonify({"message": "Doctor profile created successfully"}), 201
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"error": str(e)}), 500
+    finally:
+        put_hospital_conn(conn)
 
 
 def get_doctor_id_for_user(user_id: str):
@@ -360,7 +506,7 @@ def get_doctor_prescriptions():
                 WHERE mr.doctor_id = %s
                 GROUP BY mr.record_id, u.name, p.patient_id, mr.visit_date
                 ORDER BY mr.visit_date DESC
-            """, (doctor_id,))
+            """, (doctor_id, doctor_id))
             rows = cur.fetchall()
 
             # Stats
@@ -430,22 +576,52 @@ def get_doctor_lab_reports():
         with conn.cursor() as cur:
             cur.execute("""
                 SELECT
-                    lr.lab_report_id,
-                    u.name AS patient_name,
-                    p.patient_id,
-                    lr.test_name,
-                    lr.uploaded_at::DATE,
-                    lr.file_url,
-                    lu.name AS lab_name
-                FROM lab_reports lr
-                JOIN patient p ON lr.patient_id = p.patient_id
-                JOIN users u ON p.user_id = u.user_id
-                LEFT JOIN lab l ON lr.lab_id = l.lab_id
-                LEFT JOIN users lu ON l.user_id = lu.user_id
-                WHERE lr.doctor_id = %s
-                ORDER BY lr.uploaded_at DESC
+                    x.report_id,
+                    x.patient_name,
+                    x.patient_id,
+                    x.test_name,
+                    x.uploaded_date,
+                    x.file_url,
+                    x.lab_name
+                FROM (
+                    SELECT
+                        lr.request_id::TEXT AS report_id,
+                        u.name AS patient_name,
+                        p.patient_id,
+                        lr.test_name,
+                        COALESCE(lr.report_uploaded_at, lr.updated_at)::DATE AS uploaded_date,
+                        lr.report_file_url AS file_url,
+                        lu.name AS lab_name
+                    FROM lab_requests lr
+                    JOIN patient p ON lr.patient_id = p.patient_id
+                    JOIN users u ON p.user_id = u.user_id
+                    LEFT JOIN lab l ON lr.lab_id = l.lab_id
+                    LEFT JOIN users lu ON l.user_id = lu.user_id
+                    WHERE lr.doctor_id = %s
+                      AND lr.report_file_url IS NOT NULL
+
+                    UNION ALL
+
+                    SELECT
+                        lrp.lab_report_id::TEXT AS report_id,
+                        u.name AS patient_name,
+                        p.patient_id,
+                        lrp.test_name,
+                        lrp.uploaded_at::DATE AS uploaded_date,
+                        lrp.file_url,
+                        lu.name AS lab_name
+                    FROM lab_reports lrp
+                    JOIN patient p ON lrp.patient_id = p.patient_id
+                    JOIN users u ON p.user_id = u.user_id
+                    LEFT JOIN lab l ON lrp.lab_id = l.lab_id
+                    LEFT JOIN users lu ON l.user_id = lu.user_id
+                    WHERE lrp.doctor_id = %s
+                ) x
+                ORDER BY x.uploaded_date DESC NULLS LAST
             """, (doctor_id,))
             rows = cur.fetchall()
+
+            rows = [r for r in rows if _lab_report_file_exists(r[5])]
 
             total = len(rows)
 
@@ -623,16 +799,37 @@ def get_patient_profile(patient_id):
             # Lab reports for this patient associated with this doctor
             cur.execute("""
                 SELECT
-                    lr.lab_report_id,
-                    lr.test_name,
-                    lr.uploaded_at::DATE,
-                    lr.file_url
-                FROM lab_reports lr
-                WHERE lr.patient_id = %s AND lr.doctor_id = %s
-                ORDER BY lr.uploaded_at DESC
+                    x.report_id,
+                    x.test_name,
+                    x.uploaded_date,
+                    x.file_url
+                FROM (
+                    SELECT
+                        lr.request_id::TEXT AS report_id,
+                        lr.test_name,
+                        COALESCE(lr.report_uploaded_at, lr.updated_at)::DATE AS uploaded_date,
+                        lr.report_file_url AS file_url
+                    FROM lab_requests lr
+                    WHERE lr.patient_id = %s
+                      AND lr.doctor_id = %s
+                      AND lr.report_file_url IS NOT NULL
+
+                    UNION ALL
+
+                    SELECT
+                        lrp.lab_report_id::TEXT AS report_id,
+                        lrp.test_name,
+                        lrp.uploaded_at::DATE AS uploaded_date,
+                        lrp.file_url
+                    FROM lab_reports lrp
+                    WHERE lrp.patient_id = %s
+                      AND lrp.doctor_id = %s
+                ) x
+                ORDER BY x.uploaded_date DESC NULLS LAST
                 LIMIT 10
-            """, (patient_id, doctor_id))
+            """, (patient_id, doctor_id, patient_id, doctor_id))
             lab_rows = cur.fetchall()
+            lab_rows = [r for r in lab_rows if _lab_report_file_exists(r[3])]
             lab_reports = [
                 {
                     "lab_report_id": r[0],
@@ -1025,6 +1222,53 @@ def save_consultation():
                     RETURNING prescription_id
                 """, (record_id, med_name, med_dosage, med_frequency, duration_days))
                 prescription_ids.append(cur.fetchone()[0])
+
+            # 4. Persist lab requests so Lab portal can list and search them.
+            if lab_tests:
+                cur.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS lab_requests (
+                        request_id VARCHAR(12) PRIMARY KEY,
+                        lab_id VARCHAR(12) NOT NULL REFERENCES lab(lab_id) ON DELETE CASCADE,
+                        patient_id VARCHAR(12) REFERENCES patient(patient_id) ON DELETE CASCADE,
+                        doctor_id VARCHAR(12) REFERENCES doctor(doctor_id) ON DELETE SET NULL,
+                        test_name VARCHAR(120) NOT NULL,
+                        priority VARCHAR(20) NOT NULL DEFAULT 'normal',
+                        status VARCHAR(20) NOT NULL DEFAULT 'pending',
+                        notes TEXT,
+                        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                        report_file_url TEXT,
+                        report_file_name TEXT,
+                        report_uploaded_at TIMESTAMPTZ
+                    )
+                    """
+                )
+
+                cur.execute("SELECT lab_id FROM lab")
+                target_labs = [r[0] for r in (cur.fetchall() or [])]
+
+                requested_tests = [str(t).strip() for t in lab_tests if str(t).strip()]
+                for test_name in requested_tests:
+                    for lab_id in target_labs:
+                        request_id = "LRQ" + uuid.uuid4().hex[:7].upper()
+                        cur.execute(
+                            """
+                            INSERT INTO lab_requests (
+                                request_id, lab_id, patient_id, doctor_id,
+                                test_name, priority, status, notes, created_at, updated_at
+                            )
+                            VALUES (%s, %s, %s, %s, %s, 'normal', 'pending', %s, NOW(), NOW())
+                            """,
+                            (
+                                request_id,
+                                lab_id,
+                                patient_id,
+                                doctor_id,
+                                test_name,
+                                f"Requested during consultation {record_id}",
+                            ),
+                        )
 
             conn.commit()
 

@@ -5,10 +5,13 @@ from werkzeug.utils import secure_filename
 from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 from src.utils.db import get_conn
-from src.auth_service.auth.routes import auth_bp, admin_bp
+from src.auth_service.auth.routes import auth_bp
 from src.routes.appointment import appointment_bp
 from src.routes.qr import doctor_bp
 from src.routes.doctor import doctor_portal_bp
+from src.routes.pharmacy import pharmacy_bp
+from src.routes.lab import lab_bp
+from src.routes.admin_dashboard import admin_dashboard_bp
 
 # Initialise Firebase (requires FIREBASE_KEY_PATH in .env)
 try:
@@ -32,12 +35,10 @@ _default_origins = [
     # EC2 via nip.io (no custom domain needed)
     "https://13.60.206.154.nip.io",
     # local development
-    "http://localhost:5173",
-    "http://localhost:5174",
-    "http://localhost:5175",
-    "http://127.0.0.1:5173",
-    "http://127.0.0.1:5174",
-    "http://127.0.0.1:5175",
+    "http://localhost:5173", "http://127.0.0.1:5173",   # doctor portal
+    "http://localhost:5174", "http://127.0.0.1:5174",   # pharmacy portal
+    "http://localhost:5175", "http://127.0.0.1:5175",   # lab portal
+    "http://localhost:3000", "http://127.0.0.1:3000",   # admin portal
 ]
 _extra = [o.strip() for o in os.getenv("CORS_ORIGINS", "").split(",") if o.strip()]
 ALLOWED_ORIGINS = _default_origins + _extra
@@ -54,8 +55,10 @@ CORS(
 app.register_blueprint(appointment_bp, url_prefix="/api")
 app.register_blueprint(doctor_bp, url_prefix="/api")
 app.register_blueprint(doctor_portal_bp, url_prefix="/api")
+app.register_blueprint(pharmacy_bp, url_prefix="/api")
+app.register_blueprint(lab_bp, url_prefix="/api")
 app.register_blueprint(auth_bp, url_prefix="/auth")
-app.register_blueprint(admin_bp, url_prefix="/admin")
+app.register_blueprint(admin_dashboard_bp, url_prefix="/admin")
 
 @app.route("/")
 def home():

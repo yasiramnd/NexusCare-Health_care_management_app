@@ -1,1 +1,58 @@
-//nothing
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+firebase_service_key.json
+
+# Build and packaging artifacts
+build/
+dist/
+*.egg-info/
+.eggs/
+*.whl
+pip-wheel-metadata/
+
+# Test and coverage artifacts
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+.pyre/
+.hypothesis/
+
+# Logs
+*.log
+
+# IDE/editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Local uploads/runtime data
+uploads/
+
+# Local databases (if any)
+*.sqlite
+*.sqlite3
+*.db
