@@ -1,0 +1,41 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+
+# Virtual environment
+venv/
+.venv/
+env/
+
+# Environment & secrets (injected at runtime, never baked in)
+.env
+firebase_service_key.json
+
+# IDE / OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Docs
+*.md
+README*
+
+# Git
+.git/
+.gitignore
+
+# Tests (not needed in the image)
+tests/
+test_*
+conftest.py
+
+# Coverage / build artifacts
+htmlcov/
+.coverage
+dist/
+build/
+*.egg-info/

@@ -1,0 +1,64 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# NexusCare – local development / integration-test compose file
+#
+# Usage:
+#   docker compose up --build          # start everything
+#   docker compose up --build backend  # only the backend
+#   docker compose down -v             # stop & remove volumes
+#
+# Required before running:
+#   • backend/.env                     (copy from backend/.env.example)
+#   • backend/firebase_service_key.json
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+  # ── Flask API ───────────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: runtime            # use the lean runtime stage
+    image: kavindur2003/nexuscare-backend:local
+    container_name: nexuscare-backend
+    restart: unless-stopped
+
+    ports:
+      - "5000:5000"
+
+    # Inject secrets at runtime – never baked into the image
+    env_file:
+      - ./backend/.env
+
+    # Mount firebase key read-only at runtime (excluded from image via .dockerignore)
+    volumes:
+      - ./backend/firebase_service_key.json:/app/firebase_service_key.json:ro
+
+    environment:
+      FLASK_ENV: development
+      GUNICORN_WORKERS: "1"          # lighter for local dev
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 20s
+      retries: 3
+
+    # Uncomment once you add more services that the backend depends on:
+    # depends_on:
+    #   db:
+    #     condition: service_healthy
+
+  # ── (Optional) Adminer – lightweight DB browser ────────────────────────────
+  # adminer:
+  #   image: adminer:latest
+  #   container_name: nexuscare-adminer
+  #   restart: unless-stopped
+  #   ports:
+  #     - "8080:8080"
+  #   depends_on:
+  #     - backend
+
+networks:
+  default:
+    name: nexuscare-network

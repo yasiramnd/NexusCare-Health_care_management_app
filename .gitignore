@@ -1,0 +1,64 @@
+# =========================
+# OS files
+# =========================
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# =========================
+# IDE / Editor
+# =========================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# =========================
+# Environment Variables
+# =========================
+.env
+.env.*
+!.env.example
+
+# =========================
+# Firebase / Secrets
+# =========================
+firebase_service_key.json
+firebase-service-account.json
+*.pem
+
+# =========================
+# Logs
+# =========================
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# =========================
+# Node (frontends)
+# =========================
+node_modules/
+dist/
+build/
+.cache/
+
+# =========================
+# Python (backend)
+# =========================
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+venv/
+.venv/
+env/
+*.egg-info/
+.coverage
+htmlcov/
+
+# =========================
+# Docker
+# =========================
+docker-compose.override.yml

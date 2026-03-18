@@ -2,6 +2,7 @@ from functools import wraps
 from flask import request, jsonify, g
 from firebase_admin import auth
 from src.auth_service.db.auth_db import get_auth_conn, put_auth_conn
+from src.auth_service.firebase.firebase_init import init_firebase
 
 
 # 🔐 TOKEN VERIFICATION MIDDLEWARE
@@ -17,6 +18,7 @@ def token_required(f):
         token = auth_header.split(" ")[1]
 
         try:
+            init_firebase(required=True)
             # Verify Firebase token
             decoded_token = auth.verify_id_token(token)
             firebase_uid = decoded_token["uid"]

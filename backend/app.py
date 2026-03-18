@@ -26,12 +26,30 @@ app.url_map.strict_slashes = False
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__name__)), 'uploads')
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-CORS(app, origins=[
+
+# Allowed frontend origins – extend this list as new portals are deployed.
+# CORS_ORIGINS env var can override (comma-separated) for flexibility.
+_default_origins = [
+    "https://nexuscare-doctor-portal.vercel.app",
+    "https://nexuscare-pharmacy-portal.vercel.app",
+    # EC2 via nip.io (no custom domain needed)
+    "https://13.60.206.154.nip.io",
+    # local development
     "http://localhost:5173", "http://127.0.0.1:5173",   # doctor portal
     "http://localhost:5174", "http://127.0.0.1:5174",   # pharmacy portal
     "http://localhost:5175", "http://127.0.0.1:5175",   # lab portal
     "http://localhost:3000", "http://127.0.0.1:3000",   # admin portal
-], supports_credentials=True)
+]
+_extra = [o.strip() for o in os.getenv("CORS_ORIGINS", "").split(",") if o.strip()]
+ALLOWED_ORIGINS = _default_origins + _extra
+
+CORS(
+    app,
+    origins=ALLOWED_ORIGINS,
+    supports_credentials=True,
+    allow_headers=["Content-Type", "Authorization"],
+    methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+)
 
 
 app.register_blueprint(appointment_bp, url_prefix="/api")
@@ -48,10 +66,17 @@ def home():
 
 @app.route("/health")
 def health():
+    """Liveness probe – always returns 200 if the process is up."""
+    return jsonify({"status": "OK", "message": "Service is running."}), 200
+
+
+@app.route("/health/db")
+def health_db():
+    """Readiness probe – checks live database connectivity."""
     try:
         conn = get_conn()
         conn.close()
-        return jsonify({"status": "OK", "message": "Database connected."})
+        return jsonify({"status": "OK", "message": "Database connected."}), 200
     except Exception as e:
         return jsonify({"status": "ERROR", "message": str(e)}), 500
 
