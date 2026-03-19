@@ -29,6 +29,18 @@ const UserSmIcon = ({ size = 14, color = "#94a3b8" }) => (
     <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke={color} strokeWidth="2" strokeLinecap="round" />
   </svg>
 );
+const CheckIcon = ({ size = 16, color = "currentColor" }) => (
+  <svg width={size} height={size} fill="none" viewBox="0 0 24 24">
+    <path d="M9 12l2 2 4-4" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+    <circle cx="12" cy="12" r="9" stroke={color} strokeWidth="2" />
+  </svg>
+);
+const BoxIcon = ({ size = 16, color = "currentColor" }) => (
+  <svg width={size} height={size} fill="none" viewBox="0 0 24 24">
+    <path d="M21 8l-9-5-9 5v8l9 5 9-5V8z" stroke={color} strokeWidth="2" strokeLinejoin="round" />
+    <path d="M3 8l9 5 9-5M12 13v8" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
 
 // ── Status mapping (backend → UI) ─────────────────────────────────────────
 const statusMap = {
@@ -53,6 +65,7 @@ export default function Prescriptions({ onBack }) {
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState("All");
   const [search, setSearch] = useState("");
+  const [updatingId, setUpdatingId] = useState(null);
 
   useEffect(() => {
     if (!patientId) return;
@@ -91,6 +104,29 @@ export default function Prescriptions({ onBack }) {
     fetchData();
     return () => { cancelled = true; };
   }, [patientId]);
+
+  // ── Mark prescription status ─────────────────────────────────────────────
+  const handleStatusUpdate = async (prescriptionId, newBackendStatus) => {
+    setUpdatingId(prescriptionId);
+    try {
+      await apiFetch(`/api/pharmacy/prescription/${encodeURIComponent(prescriptionId)}/status`, {
+        method: "PATCH",
+        body: JSON.stringify({ status: newBackendStatus }),
+      });
+      // Update local state
+      setPrescriptions(prev =>
+        prev.map(p =>
+          p.id === prescriptionId
+            ? { ...p, status: statusMap[newBackendStatus] || p.status }
+            : p
+        )
+      );
+    } catch (err) {
+      alert(err.message || "Failed to update status");
+    } finally {
+      setUpdatingId(null);
+    }
+  };
 
   const tabs = [
     { key: "All", label: "All", count: prescriptions.length },
@@ -255,6 +291,32 @@ export default function Prescriptions({ onBack }) {
                     <UserSmIcon /> {p.doctor}
                   </span>
                 </div>
+
+                {/* ── Action Buttons ── */}
+                {p.status === "Pending" && (
+                  <div className="rx-card-actions">
+                    <button
+                      className="rx-action-btn rx-action-ready"
+                      disabled={updatingId === p.id}
+                      onClick={() => handleStatusUpdate(p.id, "Ordered")}
+                    >
+                      <CheckIcon size={15} color="white" />
+                      {updatingId === p.id ? "Updating..." : "Mark as Ready"}
+                    </button>
+                  </div>
+                )}
+                {p.status === "Ready" && (
+                  <div className="rx-card-actions">
+                    <button
+                      className="rx-action-btn rx-action-dispensed"
+                      disabled={updatingId === p.id}
+                      onClick={() => handleStatusUpdate(p.id, "Taken")}
+                    >
+                      <BoxIcon size={15} color="white" />
+                      {updatingId === p.id ? "Updating..." : "Mark as Dispensed"}
+                    </button>
+                  </div>
+                )}
               </div>
             );
           })

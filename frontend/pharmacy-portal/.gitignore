@@ -7,18 +7,10 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-# Dependencies
 node_modules
 dist
 dist-ssr
 *.local
-
-# Environment variables
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
 
 # Editor directories and files
 .vscode/*
@@ -30,25 +22,5 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-
-# IDE
-.vscode/
-.idea/
-*.iml
-
-# OS
-Thumbs.db
-.DS_Store
-
-# Build
-dist/
-build/
-
-# Cache
-.cache/
-.eslintcache
-
-# Package manager
-yarn-error.log
-package-lock.json
-
+*.env
+*.node_modules
