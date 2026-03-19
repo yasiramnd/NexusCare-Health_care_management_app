@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import "./App.css";
 import logo from "./assets/logo.jpeg";
 
@@ -169,33 +169,33 @@ function RegistrationRequests() {
   const [loading, setLoading] = useState(false);
   
 
-  const fetchData = () => {
-  const endpoint =
-    activeTab === "doctor"
-      ? "doctors"
-      : activeTab === "lab"
-      ? "labs"
-      : "pharmacies";
+  const fetchData = useCallback(() => {
+    const endpoint =
+      activeTab === "doctor"
+        ? "doctors"
+        : activeTab === "lab"
+        ? "labs"
+        : "pharmacies";
 
-  setLoading(true);
+    setLoading(true);
 
-  fetch(`http://127.0.0.1:5000/admin/${endpoint}`)
-    .then(res => res.json())
-    .then(data => {
-      if (Array.isArray(data)) {
-        setData(data);
-      } else {
-        console.error("Unexpected response:", data);
-        setData([]);
-      }
-    })
-    .catch(err => console.error(err))
-    .finally(() => setLoading(false));
-};
+    fetch(`http://127.0.0.1:5000/admin/${endpoint}`)
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          setData(data);
+        } else {
+          console.error("Unexpected response:", data);
+          setData([]);
+        }
+      })
+      .catch(err => console.error(err))
+      .finally(() => setLoading(false));
+  }, [activeTab]);
 
   useEffect(() => {
     fetchData();
-  }, [activeTab]);
+  }, [fetchData]);
 
   return (
     <div className="content">
@@ -390,15 +390,15 @@ const deleteUser = async (userId) => {
   setShowDeleteConfirm(false);
 };
 
-  const fetchUsers = () => {
-  setLoading(true);
+  const fetchUsers = useCallback(() => {
+    setLoading(true);
 
-  fetch(`http://127.0.0.1:5000/admin/users/${activeTab}`)
-    .then(res => res.json())
-    .then(data => setUsers(data))
-    .catch(err => console.error(err))
-    .finally(() => setLoading(false));
-};
+    fetch(`http://127.0.0.1:5000/admin/users/${activeTab}`)
+      .then(res => res.json())
+      .then(data => setUsers(data))
+      .catch(err => console.error(err))
+      .finally(() => setLoading(false));
+  }, [activeTab]);
 
   const fetchDetails = (userId) => {
   setLoading(true);
@@ -412,7 +412,7 @@ const deleteUser = async (userId) => {
 
   useEffect(() => {
     fetchUsers();
-  }, [activeTab]);
+  }, [fetchUsers]);
 
   return (
     <div className="content">
