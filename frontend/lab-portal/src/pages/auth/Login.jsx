@@ -6,6 +6,7 @@ import "../../styles/auth.css";
 
 export default function Login() {
   const nav = useNavigate();
+  const apiBase = (import.meta.env.VITE_API_BASE_URL ?? "").trim().replace(/\/+$/, "");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
@@ -20,9 +21,15 @@ export default function Login() {
       // Step 1: Sign in via Firebase (get ID token)
       await signInWithEmailAndPassword(auth, email, password);
 
+      if (!apiBase && !import.meta.env.DEV) {
+        await signOut(auth);
+        setErr("Missing VITE_API_BASE_URL in deployment environment.");
+        return;
+      }
+
       // Step 2: Call backend /auth/login to verify is_active (admin approval check)
       // This matches how doctor and pharmacy portals enforce approval
-      const res = await fetch("/auth/login", {
+      const res = await fetch(`${apiBase}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: email.trim(), password }),
