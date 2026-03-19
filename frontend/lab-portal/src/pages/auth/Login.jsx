@@ -2,11 +2,12 @@ import { useState } from "react";
 import { signInWithEmailAndPassword, signOut } from "firebase/auth";
 import { auth } from "../../firebase/firebase";
 import { useNavigate, Link } from "react-router-dom";
+import { getApiBaseUrl } from "../../services/apiBase";
 import "../../styles/auth.css";
 
 export default function Login() {
   const nav = useNavigate();
-  const apiBase = (import.meta.env.VITE_API_BASE_URL ?? "").trim().replace(/\/+$/, "");
+  const apiBase = getApiBaseUrl();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
@@ -20,12 +21,6 @@ export default function Login() {
     try {
       // Step 1: Sign in via Firebase (get ID token)
       await signInWithEmailAndPassword(auth, email, password);
-
-      if (!apiBase && !import.meta.env.DEV) {
-        await signOut(auth);
-        setErr("Missing VITE_API_BASE_URL in deployment environment.");
-        return;
-      }
 
       // Step 2: Call backend /auth/login to verify is_active (admin approval check)
       // This matches how doctor and pharmacy portals enforce approval
