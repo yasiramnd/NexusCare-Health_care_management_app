@@ -32,6 +32,7 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 _default_origins = [
     "https://nexuscare-doctor-portal.vercel.app",
     "https://nexuscare-pharmacy-portal.vercel.app",
+    "https://nexuscare-lab-portal.vercel.app",
     # EC2 via nip.io (no custom domain needed)
     "https://13.60.80.212.nip.io",
     # local development
