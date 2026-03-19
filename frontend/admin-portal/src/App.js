@@ -68,9 +68,23 @@ function Dashboard() {
 
   useEffect(() => {
     fetch("http://127.0.0.1:5000/admin/dashboard")
-      .then(res => res.json())
-      .then(data => setStats(data))
-      .catch(err => console.error(err));
+      .then(res => {
+        if (!res.ok) throw new Error("Unauthorized or Error");
+        return res.json();
+      })
+      .then(data => {
+        setStats({
+          totalPatients: data.totalPatients || 0,
+          totalDoctors: data.totalDoctors || 0,
+          pendingRequests: data.pendingRequests || 0,
+          totalPharmacies: data.totalPharmacies || 0,
+          totalLabs: data.totalLabs || 0,
+          totalAppointments: data.totalAppointments || 0
+        });
+      })
+      .catch(err => {
+        console.error("Dashboard fetch error:", err);
+      });
   }, []);
 
   if (!stats) return <Loader />;
