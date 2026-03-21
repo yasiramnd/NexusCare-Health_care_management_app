@@ -43,7 +43,7 @@ class QrScreen extends StatelessWidget {
               Text('Patient ID Not Set', style: GoogleFonts.inter(
                   fontSize: 15, fontWeight: FontWeight.w700, color: const Color(0xFFFCD34D))),
               const SizedBox(height: 4),
-              Text('Go to Emergency screen and enter your Patient ID to generate your QR card.',
+              Text('Please login again or contact support to resolve this issue.',
                   textAlign: TextAlign.center,
                   style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFFFCD34D))),
             ]),

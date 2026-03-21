@@ -54,7 +54,7 @@ class _LabReportsScreenState extends State<LabReportsScreen> {
             decoration: BoxDecoration(color: const Color(0xFFD97706).withOpacity(0.1),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: const Color(0xFFD97706).withOpacity(0.3))),
-            child: Text('Set your Patient ID in Emergency screen to view lab reports.',
+            child: Text('Patient ID is missing. Please login again or contact support.',
                 style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFFFCD34D))),
           )
         else if (provider.loading)

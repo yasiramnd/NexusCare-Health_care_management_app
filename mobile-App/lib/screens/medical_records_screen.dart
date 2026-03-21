@@ -89,7 +89,7 @@ class _MedicalRecordsScreenState extends State<MedicalRecordsScreen> {
       const Icon(Icons.warning_amber_rounded, color: Color(0xFFD97706), size: 24),
       const SizedBox(width: 12),
       Expanded(child: Text(
-          'Please set your Patient ID in the Emergency screen first to view medical records.',
+          'Patient ID is missing. Please login again or contact support.',
           style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFFFCD34D)))),
     ]),
   );

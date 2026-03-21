@@ -64,7 +64,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
       setState(() => _error = 'Please select a time slot'); return;
     }
     if (auth.patientId == null) {
-      setState(() => _error = 'Patient ID not set. Please update your profile.'); return;
+      setState(() => _error = 'Patient ID not set. Please login again or update your profile.'); return;
     }
     setState(() { _booking = true; _error = null; _success = null; });
     final date = '${_selectedDate!.year}-${_selectedDate!.month.toString().padLeft(2,'0')}-${_selectedDate!.day.toString().padLeft(2,'0')}';
@@ -98,7 +98,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
 
         // Patient ID notice
         if (auth.patientId == null) ...[
-          _infoBox(Icons.info_outline, 'Set your Patient ID in Emergency screen first to book appointments.',
+          _infoBox(Icons.info_outline, 'Patient ID is missing. Please login again or contact support.',
               const Color(0xFFD97706)),
           const SizedBox(height: 16),
         ],
