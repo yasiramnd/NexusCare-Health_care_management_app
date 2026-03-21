@@ -11,6 +11,7 @@ import 'appointments_screen.dart';
 import 'emergency_screen.dart';
 import 'order_medicine_screen.dart';
 import 'qr_screen.dart';
+import 'settings_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -20,6 +21,17 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   int _selectedIndex = 0;
+  
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final auth = context.read<AuthProvider>();
+      if (auth.patientId != null) {
+        context.read<PatientProvider>().loadUpcomingAppointments(auth.patientId!);
+      }
+    });
+  }
 
   static const _navItems = [
     NavItem(Icons.dashboard_outlined,    Icons.dashboard_rounded,    'Overview'),
@@ -30,6 +42,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     NavItem(Icons.local_pharmacy_outlined, Icons.local_pharmacy_rounded, 'Medicines'),
     NavItem(Icons.emergency_outlined,    Icons.emergency_rounded,     'Emergency'),
     NavItem(Icons.qr_code_2_outlined,    Icons.qr_code_2_rounded,    'QR Card'),
+    NavItem(Icons.settings_outlined,      Icons.settings_rounded,      'Settings'),
   ];
 
   @override
@@ -46,6 +59,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       const OrderMedicineScreen(),
       const EmergencyScreen(),
       const QrScreen(),
+      const SettingsScreen(),
     ];
 
     if (isWide) {
@@ -283,6 +297,14 @@ class _OverviewPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
+    final provider = context.watch<PatientProvider>();
+
+    // Reactive load trigger
+    if (auth.patientId != null && provider.upcomingAppointments.isEmpty && !provider.isLoading) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        provider.loadUpcomingAppointments(auth.patientId!);
+      });
+    }
 
     final tiles = [
       _QuickTile('Book Appointment', Icons.calendar_month_rounded,
@@ -299,6 +321,8 @@ class _OverviewPage extends StatelessWidget {
           const Color(0xFFEF4444), 6, onNav),
       _QuickTile('My QR Card', Icons.qr_code_2_rounded,
           const Color(0xFF0891B2), 7, onNav),
+      _QuickTile('Settings', Icons.settings_rounded,
+          const Color(0xFF6B7280), 8, onNav),
     ];
 
     return SingleChildScrollView(
@@ -374,6 +398,23 @@ class _OverviewPage extends StatelessWidget {
         ).animate().fadeIn(delay: 100.ms).slideY(begin: 0.1),
 
         const SizedBox(height: 28),
+
+        // Upcoming Appointments Reminders
+        if (provider.upcomingAppointments.isNotEmpty) ...[
+          Row(children: [
+            Text('Upcoming Appointments', style: GoogleFonts.inter(
+                fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white)),
+            const Spacer(),
+            TextButton(
+              onPressed: () => onNav(1),
+              child: Text('View All', style: GoogleFonts.inter(
+                  fontSize: 12, color: const Color(0xFF60A5FA), fontWeight: FontWeight.w600)),
+            ),
+          ]),
+          const SizedBox(height: 12),
+          ...provider.upcomingAppointments.take(2).map((appt) => _AppointmentReminderCard(appt)),
+          const SizedBox(height: 24),
+        ],
 
         Text('Quick Access', style: GoogleFonts.inter(
             fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white)),
@@ -460,6 +501,48 @@ class _QuickTile extends StatelessWidget {
         ]),
       ),
     );
+  }
+}
+
+class _AppointmentReminderCard extends StatelessWidget {
+  final dynamic appt;
+  const _AppointmentReminderCard(this.appt);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF111827),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFF1F2937)),
+      ),
+      child: Row(children: [
+        Container(
+          width: 44, height: 44,
+          decoration: BoxDecoration(
+            color: const Color(0xFF1E6FFF).withOpacity(0.12),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: const Icon(Icons.alarm_on_rounded, color: Color(0xFF60A5FA), size: 22),
+        ),
+        const SizedBox(width: 14),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('Dr. ${appt['doctor_name']}', style: GoogleFonts.inter(
+              fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white)),
+          const SizedBox(height: 2),
+          Text('${appt['specialization']}${appt['clinic_name'] != null ? ' • ${appt['clinic_name']}' : ''}',
+              style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF9CA3AF))),
+        ])),
+        Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+          Text(appt['appointment_date'], style: GoogleFonts.inter(
+              fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white)),
+          Text(appt['appointment_time'], style: GoogleFonts.inter(
+              fontSize: 12, color: const Color(0xFF60A5FA))),
+        ]),
+      ]),
+    ).animate().fadeIn(duration: 400.ms).slideX(begin: 0.05);
   }
 }
 

@@ -46,14 +46,22 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
   }
 
   Future<void> _loadSlots() async {
-    if (_doctorIdCtrl.text.isEmpty || _selectedDate == null) {
-      setState(() => _error = 'Enter Doctor ID and select a date');
+    if (_doctorIdCtrl.text.isEmpty) {
+      setState(() => _error = 'Please enter a Doctor ID');
       return;
     }
     setState(() { _loadingSlots = true; _error = null; _selectedTime = null; });
-    final date = '${_selectedDate!.year}-${_selectedDate!.month.toString().padLeft(2,'0')}-${_selectedDate!.day.toString().padLeft(2,'0')}';
-    await context.read<PatientProvider>().loadAvailableTimes(
-        _doctorIdCtrl.text.trim(), date);
+    
+    if (_selectedDate != null) {
+      // If date is selected, fetch for that specific date
+      final date = '${_selectedDate!.year}-${_selectedDate!.month.toString().padLeft(2,'0')}-${_selectedDate!.day.toString().padLeft(2,'0')}';
+      await context.read<PatientProvider>().loadAvailableTimes(
+          _doctorIdCtrl.text.trim(), date);
+    } else {
+      // Fetch all future availability
+      await context.read<PatientProvider>().loadAllAvailability(
+          _doctorIdCtrl.text.trim());
+    }
     setState(() => _loadingSlots = false);
   }
 
@@ -112,32 +120,50 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                 fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white)),
             const SizedBox(height: 20),
 
-            NxTextField(
+             NxTextField(
               controller: _doctorIdCtrl, label: 'Doctor ID',
-              hint: 'e.g. 1', icon: Icons.person_search_outlined,
-              keyboardType: TextInputType.number,
+              hint: 'e.g. DOC0008', icon: Icons.person_search_outlined,
+              onChanged: (v) {
+                if (v.length >= 3) _loadSlots(); // Auto-fetch as user types
+              },
             ),
             const SizedBox(height: 16),
 
+            // Optional: You can still keep the date picker if they want to filter, 
+            // but the user says "just type doctor id", so I'll make it secondary or remove it.
+            // I'll keep it but make it clear it's optional.
+            Text('Optionally filter by date', style: GoogleFonts.inter(
+                fontSize: 12, color: const Color(0xFF6B7280))),
+            const SizedBox(height: 8),
             GestureDetector(
               onTap: _pickDate,
               child: Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                 decoration: BoxDecoration(
                   color: const Color(0xFF1F2937),
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(color: const Color(0xFF374151)),
                 ),
                 child: Row(children: [
-                  const Icon(Icons.calendar_today_outlined, color: Color(0xFF6B7280), size: 18),
+                  const Icon(Icons.calendar_today_outlined, color: Color(0xFF6B7280), size: 16),
                   const SizedBox(width: 10),
                   Text(
-                    _selectedDate == null ? 'Select Date'
+                    _selectedDate == null ? 'All Dates'
                         : '${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}',
-                    style: GoogleFonts.inter(fontSize: 14,
+                    style: GoogleFonts.inter(fontSize: 13,
                         color: _selectedDate == null ? const Color(0xFF6B7280) : Colors.white),
                   ),
+                  if (_selectedDate != null) ...[
+                    const Spacer(),
+                    GestureDetector(
+                      onTap: () {
+                        setState(() { _selectedDate = null; });
+                        _loadSlots();
+                      },
+                      child: const Icon(Icons.close_rounded, color: Color(0xFFEF4444), size: 18),
+                    ),
+                  ],
                 ]),
               ),
             ),
@@ -152,62 +178,84 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
           ]),
         ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1),
 
-        const SizedBox(height: 20),
-
-        // Available times
+        const SizedBox(height: 20),         // Available times (Date-specific list)
         if (provider.availableTimes.isNotEmpty) ...[
           if (provider.doctorName != null)
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: _cardDecor(border: const Color(0xFF1D4ED8)),
-              child: Row(children: [
-                Container(width: 42, height: 42,
-                    decoration: BoxDecoration(
-                        color: const Color(0xFF1E6FFF).withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(10)),
-                    child: const Icon(Icons.person_rounded, color: Color(0xFF60A5FA), size: 22)),
-                const SizedBox(width: 12),
-                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(provider.doctorName!, style: GoogleFonts.inter(
-                      fontWeight: FontWeight.w700, color: Colors.white)),
-                  Text(provider.doctorSpec ?? '', style: GoogleFonts.inter(
-                      fontSize: 12, color: const Color(0xFF6B7280))),
-                ]),
-              ]),
-            ),
+            _doctorInfoCard(provider.doctorName!, provider.doctorSpec ?? ''),
           const SizedBox(height: 16),
 
           Text('Select a Time Slot', style: GoogleFonts.inter(
               fontSize: 14, fontWeight: FontWeight.w600, color: const Color(0xFF9CA3AF))),
           const SizedBox(height: 12),
 
-          Wrap(spacing: 10, runSpacing: 10,
-            children: provider.availableTimes.map((t) {
-              final sel = _selectedTime == t;
-              return GestureDetector(
-                onTap: () => setState(() => _selectedTime = t),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: sel ? const Color(0xFF1E6FFF) : const Color(0xFF1F2937),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: sel ? const Color(0xFF1E6FFF) : const Color(0xFF374151)),
-                  ),
-                  child: Text(t, style: GoogleFonts.inter(
-                      fontWeight: FontWeight.w600, fontSize: 13,
-                      color: sel ? Colors.white : const Color(0xFF9CA3AF))),
-                ),
-              );
-            }).toList(),
-          ).animate().fadeIn(delay: 200.ms),
+          _timeSlotsGrid(provider.availableTimes),
 
           const SizedBox(height: 20),
           NxButton(label: 'Confirm Booking', loading: _booking, onPressed: _book,
               icon: Icons.check_circle_outline_rounded),
         ],
 
-        if (provider.availableTimes.isEmpty && !_loadingSlots && provider.doctorName != null)
+        // Available times (Grouped by Date map)
+        if (provider.availabilityMap.isNotEmpty) ...[
+          if (provider.doctorName != null)
+            _doctorInfoCard(provider.doctorName!, provider.doctorSpec ?? ''),
+          const SizedBox(height: 20),
+          
+          Text('Available Dates and Times', style: GoogleFonts.inter(
+              fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white)),
+          const SizedBox(height: 12),
+
+          ...provider.availabilityMap.entries.map((entry) {
+            final dateKey = entry.key;
+            final times = entry.value;
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8.0),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.calendar_today, size: 16, color: Color(0xFF60A5FA)),
+                      const SizedBox(width: 8),
+                      Text(
+                        dateKey, 
+                        style: GoogleFonts.inter(
+                          fontWeight: FontWeight.w700, 
+                          color: const Color(0xFF60A5FA),
+                          fontSize: 15
+                        )
+                      ),
+                    ],
+                  ),
+                ),
+                _timeSlotsGrid(times, onSelect: (t) {
+                  setState(() {
+                    _selectedTime = t;
+                    // Auto-parse the date from the key
+                    final parts = dateKey.split('-');
+                    _selectedDate = DateTime(
+                      int.parse(parts[0]), 
+                      int.parse(parts[1]), 
+                      int.parse(parts[2])
+                    );
+                  });
+                }, activeDate: dateKey),
+                const SizedBox(height: 12),
+              ],
+            );
+          }).toList(),
+
+          const SizedBox(height: 20),
+          if (_selectedTime != null && _selectedDate != null)
+            NxButton(
+              label: 'Confirm Booking for ${_selectedDate!.day}/${_selectedDate!.month} at $_selectedTime', 
+              loading: _booking, 
+              onPressed: _book,
+              icon: Icons.check_circle_outline_rounded
+            ),
+        ],
+
+        if (provider.availableTimes.isEmpty && provider.availabilityMap.isEmpty && !_loadingSlots && provider.doctorName != null)
           _infoBox(Icons.event_busy_rounded, 'No available slots on selected date. Try another date.',
               const Color(0xFFD97706)),
 
@@ -263,4 +311,55 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
         fontSize: 13,
         color: isError ? const Color(0xFFFCA5A5) : const Color(0xFF6EE7B7))),
   );
+
+  Widget _doctorInfoCard(String name, String spec) => Container(
+    padding: const EdgeInsets.all(16),
+    decoration: _cardDecor(border: const Color(0xFF1D4ED8)),
+    child: Row(children: [
+      Container(width: 42, height: 42,
+          decoration: BoxDecoration(
+              color: const Color(0xFF1E6FFF).withOpacity(0.15),
+              borderRadius: BorderRadius.circular(10)),
+          child: const Icon(Icons.person_rounded, color: Color(0xFF60A5FA), size: 22)),
+      const SizedBox(width: 12),
+      Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(name, style: GoogleFonts.inter(
+            fontWeight: FontWeight.w700, color: Colors.white)),
+        Text(spec, style: GoogleFonts.inter(
+            fontSize: 12, color: const Color(0xFF6B7280))),
+      ]),
+    ]),
+  );
+
+  Widget _timeSlotsGrid(List<String> times, {Function(String)? onSelect, String? activeDate}) => Wrap(
+    spacing: 10, runSpacing: 10,
+    children: times.map((t) {
+      final isDateMatch = activeDate == null || 
+          (_selectedDate != null && 
+           '${_selectedDate!.year}-${_selectedDate!.month.toString().padLeft(2,'0')}-${_selectedDate!.day.toString().padLeft(2,'0')}' == activeDate);
+      final sel = _selectedTime == t && isDateMatch;
+      
+      return GestureDetector(
+        onTap: () {
+          if (onSelect != null) {
+            onSelect(t);
+          } else {
+            setState(() => _selectedTime = t);
+          }
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+          decoration: BoxDecoration(
+            color: sel ? const Color(0xFF1E6FFF) : const Color(0xFF1F2937),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: sel ? const Color(0xFF1E6FFF) : const Color(0xFF374151)),
+          ),
+          child: Text(t, style: GoogleFonts.inter(
+              fontWeight: FontWeight.w600, fontSize: 13,
+              color: sel ? Colors.white : const Color(0xFF9CA3AF))),
+        ),
+      );
+    }).toList(),
+  ).animate().fadeIn(delay: 200.ms);
 }
