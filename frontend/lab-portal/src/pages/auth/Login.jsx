@@ -2,10 +2,12 @@ import { useState } from "react";
 import { signInWithEmailAndPassword, signOut } from "firebase/auth";
 import { auth } from "../../firebase/firebase";
 import { useNavigate, Link } from "react-router-dom";
+import { getApiBaseUrl } from "../../services/apiBase";
 import "../../styles/auth.css";
 
 export default function Login() {
   const nav = useNavigate();
+  const apiBase = getApiBaseUrl();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
@@ -22,7 +24,7 @@ export default function Login() {
 
       // Step 2: Call backend /auth/login to verify is_active (admin approval check)
       // This matches how doctor and pharmacy portals enforce approval
-      const res = await fetch("/auth/login", {
+      const res = await fetch(`${apiBase}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: email.trim(), password }),

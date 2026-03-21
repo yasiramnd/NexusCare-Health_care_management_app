@@ -1,6 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import "./App.css";
 import logo from "./assets/logo.jpeg";
+
+const API_BASE_URL = (process.env.REACT_APP_API_URL || "").replace(/\/+$/, "");
+const apiUrl = (path) => `${API_BASE_URL}${path}`;
 
 /* ================= SIDEBAR ================= */
 
@@ -67,7 +70,7 @@ function Dashboard() {
   const [stats, setStats] = useState(null);
 
   useEffect(() => {
-    fetch("http://127.0.0.1:5000/admin/dashboard")
+    fetch(apiUrl("/admin/dashboard"))
       .then(res => {
         if (!res.ok) throw new Error("Unauthorized or Error");
         return res.json();
@@ -169,33 +172,33 @@ function RegistrationRequests() {
   const [loading, setLoading] = useState(false);
   
 
-  const fetchData = () => {
-  const endpoint =
-    activeTab === "doctor"
-      ? "doctors"
-      : activeTab === "lab"
-      ? "labs"
-      : "pharmacies";
+  const fetchData = useCallback(() => {
+    const endpoint =
+      activeTab === "doctor"
+        ? "doctors"
+        : activeTab === "lab"
+        ? "labs"
+        : "pharmacies";
 
-  setLoading(true);
+    setLoading(true);
 
-  fetch(`http://127.0.0.1:5000/admin/${endpoint}`)
-    .then(res => res.json())
-    .then(data => {
-      if (Array.isArray(data)) {
-        setData(data);
-      } else {
-        console.error("Unexpected response:", data);
-        setData([]);
-      }
-    })
-    .catch(err => console.error(err))
-    .finally(() => setLoading(false));
-};
+    fetch(apiUrl(`/admin/${endpoint}`))
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          setData(data);
+        } else {
+          console.error("Unexpected response:", data);
+          setData([]);
+        }
+      })
+      .catch(err => console.error(err))
+      .finally(() => setLoading(false));
+  }, [activeTab]);
 
   useEffect(() => {
     fetchData();
-  }, [activeTab]);
+  }, [fetchData]);
 
   return (
     <div className="content">
@@ -264,7 +267,7 @@ function RegistrationRequests() {
 
   const updateStatus = (status) => {
     fetch(
-      `http://127.0.0.1:5000/admin/update/${role}/${item.id}/${status}`,
+      apiUrl(`/admin/update/${role}/${item.id}/${status}`),
       { method: "POST" }
     )
       .then(res => res.json())
@@ -384,26 +387,26 @@ function ManageUsers() {
 
 const deleteUser = async (userId) => {
 
-  await fetch(`http://127.0.0.1:5000/admin/delete-login/${userId}`, {
+  await fetch(apiUrl(`/admin/delete-login/${userId}`), {
     method: "DELETE"
   });
   setShowDeleteConfirm(false);
 };
 
-  const fetchUsers = () => {
-  setLoading(true);
+  const fetchUsers = useCallback(() => {
+    setLoading(true);
 
-  fetch(`http://127.0.0.1:5000/admin/users/${activeTab}`)
-    .then(res => res.json())
-    .then(data => setUsers(data))
-    .catch(err => console.error(err))
-    .finally(() => setLoading(false));
-};
+    fetch(apiUrl(`/admin/users/${activeTab}`))
+      .then(res => res.json())
+      .then(data => setUsers(data))
+      .catch(err => console.error(err))
+      .finally(() => setLoading(false));
+  }, [activeTab]);
 
   const fetchDetails = (userId) => {
   setLoading(true);
 
-  fetch(`http://127.0.0.1:5000/admin/user-details/${activeTab}/${userId}`)
+  fetch(apiUrl(`/admin/user-details/${activeTab}/${userId}`))
     .then(res => res.json())
     .then(data => setDetails(data))
     .catch(err => console.error(err))
@@ -412,7 +415,7 @@ const deleteUser = async (userId) => {
 
   useEffect(() => {
     fetchUsers();
-  }, [activeTab]);
+  }, [fetchUsers]);
 
   return (
     <div className="content">

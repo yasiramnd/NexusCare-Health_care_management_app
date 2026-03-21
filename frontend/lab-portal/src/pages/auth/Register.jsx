@@ -2,6 +2,7 @@ import { useState } from "react";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../../firebase/firebase";
 import { useNavigate, Link } from "react-router-dom";
+import { getApiBaseUrl } from "../../services/apiBase";
 import "../../styles/auth.css";
 
 const Icon = ({ children, ...props }) => (
@@ -22,6 +23,7 @@ const Icon = ({ children, ...props }) => (
 
 export default function Register() {
     const nav = useNavigate();
+    const apiBase = getApiBaseUrl();
 
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -82,10 +84,8 @@ export default function Register() {
             const credential = await createUserWithEmailAndPassword(auth, email.trim(), password);
             const uid = credential.user.uid;
 
-            const base = import.meta.env.VITE_API_BASE_URL ?? "";
-
             // Step 2: Store credentials in nexuscare_db_auth.credentials table
-            const authRes = await fetch(`${base}/auth/register`, {
+            const authRes = await fetch(`${apiBase}/auth/register`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -120,7 +120,7 @@ export default function Register() {
             fd.append("business_registration_doc", registrationFile);
 
             try {
-                const profileRes = await fetch(`${base}/api/lab/register-request`, {
+                const profileRes = await fetch(`${apiBase}/api/lab/register-request`, {
                     method: "POST",
                     body: fd,
                 });

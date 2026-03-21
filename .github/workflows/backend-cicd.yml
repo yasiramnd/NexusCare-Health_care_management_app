@@ -137,6 +137,7 @@ jobs:
             -e AUTH_DB_HOST=localhost \
             -e HOSPITAL_DB_HOST=localhost \
             -e JWT_SECRET=test_secret \
+            -e SUPABASE_SERVICE_ROLE_KEY=test_role_key \
             -e FIREBASE_KEY_PATH="" \
             ${{ env.DOCKERHUB_IMAGE }}:ci-test
 
@@ -232,13 +233,14 @@ jobs:
           FIREBASE_API_KEY: ${{ secrets.FIREBASE_API_KEY }}
           FIREBASE_KEY_B64: ${{ secrets.FIREBASE_SERVICE_KEY_B64 }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           timeout: 60s
           command_timeout: 5m
-          envs: AUTH_DB_HOST,AUTH_DB_PORT,AUTH_DB_NAME,AUTH_DB_USER,AUTH_DB_PASSWORD,HOSPITAL_DB_HOST,HOSPITAL_DB_PORT,HOSPITAL_DB_NAME,HOSPITAL_DB_USER,HOSPITAL_DB_PASSWORD,FIREBASE_API_KEY,FIREBASE_KEY_B64,JWT_SECRET
+          envs: AUTH_DB_HOST,AUTH_DB_PORT,AUTH_DB_NAME,AUTH_DB_USER,AUTH_DB_PASSWORD,HOSPITAL_DB_HOST,HOSPITAL_DB_PORT,HOSPITAL_DB_NAME,HOSPITAL_DB_USER,HOSPITAL_DB_PASSWORD,FIREBASE_API_KEY,FIREBASE_KEY_B64,JWT_SECRET,SUPABASE_SERVICE_ROLE_KEY
           script: |
             set -e
             mkdir -p ~/nexuscare
@@ -258,6 +260,7 @@ jobs:
             FIREBASE_KEY_PATH=/app/firebase_service_key.json
             FIREBASE_API_KEY=$FIREBASE_API_KEY
             JWT_SECRET=$JWT_SECRET
+            SUPABASE_SERVICE_ROLE_KEY=$SUPABASE_SERVICE_ROLE_KEY
             ENV_EOF
 
             # Decode and write firebase service-account key
