@@ -1,11 +1,6 @@
 import threading
 import logging
 
-from src.services.supabase_storage_service import download_pdf_from_storage
-from src.services.pdf_text_service import extract_text_from_pdf_bytes
-from src.services.text_chunker_service import chunk_text
-from src.services.patient_rag_service import delete_document_chunks, upsert_document_chunks
-
 logger = logging.getLogger(__name__)
 
 
@@ -22,6 +17,13 @@ def ingest_lab_report_to_qdrant(
     is not delayed by embedding computation.
     """
     try:
+        # Optional dependencies are loaded lazily so app startup does not fail
+        # in environments that only run smoke/health checks.
+        from src.services.supabase_storage_service import download_pdf_from_storage
+        from src.services.pdf_text_service import extract_text_from_pdf_bytes
+        from src.services.text_chunker_service import chunk_text
+        from src.services.patient_rag_service import delete_document_chunks, upsert_document_chunks
+
         logger.info(
             "RAG ingestion started for request_id=%s, patient_id=%s",
             request_id, patient_id,
@@ -57,6 +59,12 @@ def ingest_lab_report_to_qdrant(
             request_id, inserted,
         )
 
+    except ImportError as exc:
+        logger.warning(
+            "RAG ingestion skipped: optional dependency missing for request_id=%s (%s)",
+            request_id,
+            exc,
+        )
     except Exception:
         logger.exception(
             "RAG ingestion failed for request_id=%s", request_id,
