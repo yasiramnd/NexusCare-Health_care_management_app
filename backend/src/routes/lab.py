@@ -14,6 +14,7 @@ import uuid
 import os
 import json
 from io import BytesIO
+from src.services.lab_upload_ingestion_service import trigger_rag_ingestion_async
 
 
 lab_bp = Blueprint("lab_bp", __name__)
@@ -728,6 +729,20 @@ def upload_lab_report(request_id):
 			_ensure_lab_tables(conn)
 			lab_id = _ensure_lab_identity(cur, user_id)
 
+
+			# Fetch patient_id and test_name for this request
+			cur.execute(
+				"""
+				SELECT patient_id, test_name
+				FROM lab_requests
+				WHERE request_id = %s AND lab_id = %s
+				""",
+				(request_id, lab_id),
+			)
+			req_row = cur.fetchone()
+			patient_id = req_row[0] if req_row else None
+			test_name = req_row[1] if req_row else None
+
 			cur.execute(
 				"""
 				UPDATE lab_requests
@@ -746,7 +761,22 @@ def upload_lab_report(request_id):
 				return jsonify({"error": "Request not found"}), 404
 
 			conn.commit()
-			return jsonify({"message": "Report uploaded", "request_id": row[0], "file_url": file_url})
+
+			# Trigger RAG ingestion in background thread (non-blocking)
+			if patient_id:
+				trigger_rag_ingestion_async(
+					file_url=file_url,
+					patient_id=patient_id,
+					request_id=request_id,
+					test_name=test_name or "Lab Report",
+				)
+
+			return jsonify({
+				"message": "Report uploaded",
+				"request_id": row[0],
+				"file_url": file_url,
+				"rag_status": "processing" if patient_id else "skipped"
+			})
 	except Exception as e:
 		conn.rollback()
 		return jsonify({"error": str(e)}), 500
