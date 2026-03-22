@@ -64,13 +64,20 @@ export default function UploadReport() {
       fd.append("file", file);
 
       await api.post(`/api/lab/requests/${selectedId}/upload-report`, fd, {
-        headers: { "Content-Type": "multipart/form-data" }
+        timeout: 120000
       });
 
       toast.push("success", "Report uploaded ✅ Request marked completed.");
       setFile(null);
     } catch (e) {
-      toast.push("error", e?.response?.data?.error || e?.message || "Upload failed");
+      if (!e?.response) {
+        toast.push(
+          "error",
+          "Upload failed before server response. Check internet, try a smaller PDF, or retry in a few seconds."
+        );
+      } else {
+        toast.push("error", e?.response?.data?.error || e?.message || "Upload failed");
+      }
     } finally {
       setBusy(false);
     }

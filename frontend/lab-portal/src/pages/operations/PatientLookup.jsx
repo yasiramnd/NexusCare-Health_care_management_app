@@ -116,12 +116,19 @@ export default function PatientLookup() {
       const fd = new FormData();
       fd.append("file", file);
       await api.post(`/api/lab/requests/${requestId}/upload-report`, fd, {
-        headers: { "Content-Type": "multipart/form-data" }
+        timeout: 120000
       });
       toast.push("success", "Report uploaded successfully.");
       await loadHistory(patient?.patient_id);
     } catch (err) {
-      toast.push("error", err?.response?.data?.error || err?.message || "Upload failed");
+      if (!err?.response) {
+        toast.push(
+          "error",
+          "Upload failed before server response. Check internet, try a smaller PDF, or retry in a few seconds."
+        );
+      } else {
+        toast.push("error", err?.response?.data?.error || err?.message || "Upload failed");
+      }
     } finally {
       setUploadingRequestId("");
       setUploadTargetId("");
