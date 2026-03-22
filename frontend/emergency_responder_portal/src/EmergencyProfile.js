@@ -15,9 +15,26 @@ function EmergencyProfile() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    
-    const apiBase = process.env.REACT_APP_API_BASE_URL;
-    fetch(`${apiBase}/emergency/${patientId}`);
+
+  const apiBase = process.env.REACT_APP_API_BASE_URL;
+
+  fetch(`${apiBase}/emergency/${patientId}`)
+    .then((res) => res.json())
+    .then((result) => {
+
+      setLoading(false);
+
+      if (result.message) {
+        setMessage(result.message);
+      } else {
+        setData(result);
+      }
+
+    })
+    .catch(() => {
+      setLoading(false);
+      setMessage("Server not reachable");
+    });
 
 }, [patientId]);
 
