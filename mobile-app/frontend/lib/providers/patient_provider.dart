@@ -1,8 +1,23 @@
 import 'package:flutter/foundation.dart';
-import '../services/api_service.dart';
+import '../../services/api_service.dart';
 
 class PatientProvider extends ChangeNotifier {
   final ApiService _api = ApiService();
+
+  // ── Upcoming Appointments ───────────────────────────────────────────
+  Future<void> loadUpcomingAppointments(String patientId) async {
+    _isLoading = true;
+    notifyListeners();
+    try {
+      final res = await _api.getPatientAppointments(patientId);
+      _upcomingAppointments = res['appointments'] ?? [];
+    } catch (e) {
+      debugPrint('Error loading upcoming appointments: $e');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
 
   // ── State ─────────────────────────────────────────────────────────────
   List<Map<String, dynamic>> _medicalRecords  = [];
@@ -10,6 +25,9 @@ class PatientProvider extends ChangeNotifier {
   List<Map<String, dynamic>> _labReports      = [];
   Map<String, dynamic>?      _emergencyProfile;
   List<String>               _availableTimes  = [];
+  Map<String, List<String>>  _availabilityMap = {}; // Grouped by date
+  List<dynamic>              _upcomingAppointments = [];
+  bool                       _isLoading = false;
   String?                    _doctorName;
   String?                    _doctorSpec;
   bool                       _loading         = false;
@@ -20,6 +38,9 @@ class PatientProvider extends ChangeNotifier {
   List<Map<String, dynamic>> get labReports      => _labReports;
   Map<String, dynamic>?      get emergencyProfile => _emergencyProfile;
   List<String>               get availableTimes  => _availableTimes;
+  Map<String, List<String>>  get availabilityMap => _availabilityMap;
+  List<dynamic>              get upcomingAppointments => _upcomingAppointments;
+  bool                       get isLoading => _isLoading;
   String?                    get doctorName      => _doctorName;
   String?                    get doctorSpec      => _doctorSpec;
   bool                       get loading         => _loading;
@@ -81,10 +102,36 @@ class PatientProvider extends ChangeNotifier {
       _availableTimes = List<String>.from(data['available_times'] ?? []);
       _doctorName     = data['doctor_name']?.toString();
       _doctorSpec     = data['specialization']?.toString();
+      _availabilityMap = {}; // Clear map when searching by date
       _error = null;
     } catch (e) {
       _error = e.toString().replaceFirst('Exception: ', '');
       _availableTimes = [];
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  Future<void> loadAllAvailability(String doctorId) async {
+    _setLoading(true);
+    try {
+      final data = await _api.getDoctorAvailability(doctorId);
+      _doctorName = data['doctor_name']?.toString();
+      _doctorSpec = data['specialization']?.toString();
+      
+      final rawMap = data['availability'] as Map<String, dynamic>?;
+      _availabilityMap = {};
+      if (rawMap != null) {
+        rawMap.forEach((key, value) {
+          _availabilityMap[key] = List<String>.from(value);
+        });
+      }
+      
+      _availableTimes = []; // Clear list when fetching all
+      _error = null;
+    } catch (e) {
+      _error = e.toString().replaceFirst('Exception: ', '');
+      _availabilityMap = {};
     } finally {
       _setLoading(false);
     }
