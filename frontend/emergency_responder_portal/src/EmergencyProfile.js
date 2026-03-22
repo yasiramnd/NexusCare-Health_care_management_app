@@ -17,7 +17,7 @@ function EmergencyProfile() {
   useEffect(() => {
     
     const apiBase = process.env.REACT_APP_API_BASE_URL;
-    fetch(`${apiBase}/emergency/PT001`);
+    fetch(`${apiBase}/emergency/${patientId}`);
 
 }, [patientId]);
 
