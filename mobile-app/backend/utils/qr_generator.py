@@ -27,7 +27,7 @@ SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 SUPABASE_BUCKET = os.getenv("SUPABASE_BUCKET")
 EMERGENCY_PORTAL_BASE_URL = os.getenv(
     "EMERGENCY_PORTAL_BASE_URL",
-    "https://nexuscare-emergency-responder-portal.vercel.app"
+    "nexuscare-emergency-responder.netlify.app"
 )
 
 # Supabase client
@@ -111,7 +111,10 @@ def upload_to_supabase(file_path, filename):
         supabase.storage.from_(SUPABASE_BUCKET).upload(
             filename,
             file,
-            {"content-type": "image/png"}
+            {
+                "content-type": "image/png",
+                "upsert": "true"
+            }
         )
 
     public_url = supabase.storage.from_(SUPABASE_BUCKET).get_public_url(filename)
