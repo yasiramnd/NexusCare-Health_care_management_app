@@ -107,8 +107,10 @@ def book_appointment(app):
             traceback.print_exc()
             return jsonify({"error": str(e)}), 500
         finally:
+            if cur:
+                cur.close()
             if conn:
-                put_hospital_conn(conn)
+                conn.close()
 
     @app.route("/appointment/patient/<patient_id>", methods=["GET"])
     def get_patient_appointments(patient_id):
@@ -161,5 +163,7 @@ def book_appointment(app):
             traceback.print_exc()
             return jsonify({"error": str(e)}), 500
         finally:
+            if cur:
+                cur.close()
             if conn:
-                put_hospital_conn(conn)
+                conn.close()
