@@ -6,21 +6,8 @@
 import os
 import psycopg2
 import qrcode
-from dotenv import load_dotenv
 from supabase import create_client
 
-# Load environment variables
-load_dotenv()
-
-# ==========================
-# Environment Configuration
-# ==========================
-
-DB_HOST = os.getenv("DB_HOST")
-DB_NAME = os.getenv("DB_NAME")
-DB_USER = os.getenv("DB_USER")
-DB_PASSWORD = os.getenv("DB_PASSWORD")
-DB_PORT = os.getenv("DB_PORT")
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
@@ -42,21 +29,9 @@ os.makedirs(QR_FOLDER, exist_ok=True)
 # Check Patient Exists
 # ==========================
 
-def patient_exists(patient_id):
-    conn = psycopg2.connect(
-        host=DB_HOST,
-        database=DB_NAME,
-        user=DB_USER,
-        password=DB_PASSWORD,
-        port=DB_PORT
-    )
-    cur = conn.cursor()
-
+def patient_exists(patient_id, cur):
     cur.execute("SELECT 1 FROM patient WHERE patient_id = %s;", (patient_id,))
     result = cur.fetchone()
-
-    cur.close()
-    conn.close()
 
     return result is not None
 
@@ -100,35 +75,22 @@ def upload_to_supabase(file_path, filename):
 # Update DB
 # ==========================
 
-def update_qr_url(patient_id, qr_url):
-
-    conn = psycopg2.connect(
-        host=DB_HOST,
-        database=DB_NAME,
-        user=DB_USER,
-        password=DB_PASSWORD,
-        port=DB_PORT
-    )
-    cur = conn.cursor()
+def update_qr_url(patient_id, qr_url,cur):
 
     cur.execute(
         "UPDATE patient SET qr_code = %s WHERE patient_id = %s;",
         (qr_url, patient_id)
     )
 
-    conn.commit()
-    cur.close()
-    conn.close()
-
 
 # ==========================
 # MAIN FUNCTION (Reusable)
 # ==========================
 
-def generate_and_upload_qr(patient_id):
+def generate_and_upload_qr(patient_id, cur):
 
     try:
-        if not patient_exists(patient_id):
+        if not patient_exists(patient_id, cur):
             print("Patient not found")
             return None
 
@@ -139,7 +101,7 @@ def generate_and_upload_qr(patient_id):
         qr_url = upload_to_supabase(file_path, filename)
 
         # Update DB
-        update_qr_url(patient_id, qr_url)
+        update_qr_url(patient_id, qr_url,cur)
 
         # ✅ Delete local file after upload
         if os.path.exists(file_path):
