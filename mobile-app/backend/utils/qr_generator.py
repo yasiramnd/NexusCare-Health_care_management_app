@@ -42,7 +42,7 @@ def patient_exists(patient_id, cur):
 
 def generate_qr_image(patient_id):
 
-    url = f"http://nexuscare.lk/emergency/{patient_id}"
+    url = f"https://nexuscare-emergency-responder.netlify.app/emergency/{patient_id}"
 
     filename = f"{patient_id}.png"
     file_path = os.path.join(QR_FOLDER, filename)

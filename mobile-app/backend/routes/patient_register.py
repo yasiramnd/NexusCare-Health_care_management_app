@@ -116,7 +116,8 @@ def register_patient():
         "message": "Patient registered successfully",
         "user_id": user_id,
         "patient_id": patient_id,
-        "firebase_uid": firebase_uid
+        "firebase_uid": firebase_uid,
+        "QR_code_URL": qr_url
     }), 201
 
 
