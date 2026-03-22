@@ -11,6 +11,7 @@ from src.routes.qr import doctor_bp
 from src.routes.doctor import doctor_portal_bp
 from src.routes.pharmacy import pharmacy_bp
 from src.routes.lab import lab_bp
+from src.routes.emergency import emergency_bp
 from src.routes.admin_dashboard import admin_dashboard_bp
 
 # Initialise Firebase (requires FIREBASE_KEY_PATH in .env)
@@ -34,6 +35,7 @@ _default_origins = [
     "https://nexuscare-pharmacy-portal.vercel.app",
     "https://nexuscare-lab-portal.vercel.app",
     "https://nexuscare-admin-portal.vercel.app",
+    "https://nexuscare-emergency-responder-portal.vercel.app",
     # EC2 via nip.io (no custom domain needed)
     "https://13.60.80.212.nip.io",
     # local development
@@ -59,6 +61,7 @@ app.register_blueprint(doctor_bp, url_prefix="/api")
 app.register_blueprint(doctor_portal_bp, url_prefix="/api")
 app.register_blueprint(pharmacy_bp, url_prefix="/api")
 app.register_blueprint(lab_bp, url_prefix="/api")
+app.register_blueprint(emergency_bp, url_prefix="/emergency")
 app.register_blueprint(auth_bp, url_prefix="/auth")
 app.register_blueprint(admin_dashboard_bp, url_prefix="/admin")
 

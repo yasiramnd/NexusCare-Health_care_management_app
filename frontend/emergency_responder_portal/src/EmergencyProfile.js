@@ -5,6 +5,14 @@ import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import Loader from "./Loader";
 
+const DEFAULT_API_BASE = "https://13.60.80.212.nip.io";
+
+function getApiBase() {
+  const configured = String(process.env.REACT_APP_API_BASE_URL || "").trim().replace(/\/+$/, "");
+  if (configured) return configured;
+  return DEFAULT_API_BASE;
+}
+
 function EmergencyProfile() {
 
   const { patientId } = useParams();
@@ -15,8 +23,9 @@ function EmergencyProfile() {
 
   useEffect(() => {
 
-    // Call backend API
-    fetch(`http://127.0.0.1:5000/emergency/${patientId}`)
+    const apiBase = getApiBase();
+    // Call public emergency endpoint
+    fetch(`${apiBase}/emergency/${encodeURIComponent(patientId)}`)
       .then((response) => response.json())
       .then((result) => {
 

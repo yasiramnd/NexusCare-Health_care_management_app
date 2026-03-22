@@ -1,6 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
-import '../services/api_service.dart';
+import '../../services/api_service.dart';
 
 enum AuthStatus { initial, loading, authenticated, unauthenticated, error }
 
@@ -85,6 +85,24 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
     try {
       final result = await _api.registerPatient(formData);
+      _status = AuthStatus.unauthenticated;
+      notifyListeners();
+      return null; // success
+    } catch (e) {
+      _status   = AuthStatus.error;
+      _errorMsg = e.toString().replaceFirst('Exception: ', '');
+      notifyListeners();
+      return _errorMsg;
+    }
+  }
+
+  // ── Reset Password ───────────────────────────────────────────────────
+  Future<String?> resetPassword(String email, String newPassword) async {
+    _status = AuthStatus.loading;
+    _errorMsg = null;
+    notifyListeners();
+    try {
+      await _api.resetPassword(email, newPassword);
       _status = AuthStatus.unauthenticated;
       notifyListeners();
       return null; // success

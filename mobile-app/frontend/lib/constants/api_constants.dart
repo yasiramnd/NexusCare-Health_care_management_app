@@ -5,7 +5,8 @@ class ApiConstants {
 
   // ── Auth ──────────────────────────────────────────────────────────────
   static const String authMe       = '$baseUrl/auth/me';
-  static const String authRegister = '$baseUrl/auth/register';
+  static const String authRegister      = '$baseUrl/auth/register';
+  static const String authResetPassword = '$baseUrl/auth/reset-password';
 
   // ── Patient Registration ───────────────────────────────────────────────
   static const String patientRegister = '$baseUrl/patient/register';
@@ -16,6 +17,11 @@ class ApiConstants {
   // ── Doctor Availability ───────────────────────────────────────────────
   static String doctorAvailableTimes(String doctorId, String date) =>
       '$baseUrl/doctor/available-times/$doctorId/$date';
+
+  static String doctorAllAvailability(String doctorId) =>
+      '$baseUrl/doctor/availability/$doctorId';
+
+  static const String patientAppointments = "$baseUrl/appointment/patient";
 
   // ── Medical Records ───────────────────────────────────────────────────
   static String medicalRecords(String patientId) =>
@@ -41,4 +47,11 @@ class ApiConstants {
 
   // ── Medicine Order ────────────────────────────────────────────────────
   static const String orderMedicine = '$baseUrl/prescription/order';
+
+  // ── Patient Profile ─────────────────────────────────────────────────
+  static String patientProfile(String patientId) =>
+      '$baseUrl/patient/profile/$patientId';
+
+  // ── Change Password ─────────────────────────────────────────────────
+  static const String changePassword = '$baseUrl/patient/change-password';
 }
