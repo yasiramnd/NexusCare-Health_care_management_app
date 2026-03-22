@@ -1,5 +1,5 @@
 from flask import jsonify, request
-from db import get_db
+from app.db.hospital_db import get_hospital_conn
 
 def order_medicine(app):
 
@@ -24,7 +24,7 @@ def order_medicine(app):
             if not all([order_type, patient_id, prescription_id, pharmacy_id]):
                 return jsonify({"error": "Missing required fields"}), 400
 
-            conn = get_db()
+            conn = get_hospital_conn()
             cur = conn.cursor()
 
             # ==========================

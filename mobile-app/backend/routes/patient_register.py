@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify
 from firebase_admin import auth as firebase_auth
 from app.db.auth_db import get_auth_conn, put_auth_conn
 from app.db.hospital_db import get_hospital_conn, put_hospital_conn
+from utils.qr_generator import generate_and_upload_qr
 
 patient_register_bp = Blueprint("patient_register_bp", __name__)
 
@@ -62,7 +63,15 @@ def register_patient():
 
             patient_id = cur.fetchone()["patient_id"]
 
-            # 🔹 3. Insert emergency_profile
+            #   3. Generate QR code
+            qr_url = generate_and_upload_qr(patient_id, cur)
+            if qr_url:
+                print("QR Generated Successfully to ",patient_id)
+            else:
+                print("Failed to generate QR")
+
+
+            # 🔹 4. Insert emergency_profile
             cur.execute("""
                 INSERT INTO emergency_profile
                 (patient_id, contact_name, contact_phone, blood_group,
@@ -107,7 +116,8 @@ def register_patient():
         "message": "Patient registered successfully",
         "user_id": user_id,
         "patient_id": patient_id,
-        "firebase_uid": firebase_uid
+        "firebase_uid": firebase_uid,
+        "QR_code_URL": qr_url
     }), 201
 
 

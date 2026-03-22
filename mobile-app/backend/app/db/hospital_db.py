@@ -19,4 +19,3 @@ def get_hospital_conn():
 
 def put_hospital_conn(conn):
     hospital_pool.putconn(conn)
-

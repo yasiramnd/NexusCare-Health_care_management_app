@@ -7,6 +7,7 @@ import Loader from "./Loader";
 
 const DEFAULT_API_BASE = "https://13.60.80.212.nip.io";
 
+
 function getApiBase() {
   const configured = String(process.env.REACT_APP_API_BASE_URL || "").trim().replace(/\/+$/, "");
   if (configured) return configured;
@@ -16,6 +17,7 @@ function getApiBase() {
 function EmergencyProfile() {
 
   const { patientId } = useParams();
+  const DEFAULT_API_BASE = "https://13.60.80.212.nip.io";
 
   const [data, setData] = useState(null);
   const [message, setMessage] = useState("");
@@ -23,28 +25,27 @@ function EmergencyProfile() {
 
   useEffect(() => {
 
-    const apiBase = getApiBase();
-    // Call public emergency endpoint
-    fetch(`${apiBase}/emergency/${encodeURIComponent(patientId)}`)
-      .then((response) => response.json())
-      .then((result) => {
+  const apiBase = getApiBase();
 
-        setLoading(false);
+  fetch(`${apiBase}/emergency/${encodeURIComponent(patientId)}`)
+    .then((response) => response.json())
+    .then((result) => {
 
-        // Handle backend message responses
-        if (result.message) {
-          setMessage(result.message);
-        } else {
-          setData(result);
-        }
+      setLoading(false);
 
-      })
-      .catch(() => {
-        setLoading(false);
-        setMessage("Server not reachable");
-      });
+      if (result.message) {
+        setMessage(result.message);
+      } else {
+        setData(result);
+      }
 
-  }, [patientId]);
+    })
+    .catch(() => {
+      setLoading(false);
+      setMessage("Server not reachable");
+    });
+
+}, [patientId]);
 
   // Show loading animation
   if (loading) return <Loader />;

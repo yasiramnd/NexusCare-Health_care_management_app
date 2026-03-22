@@ -1,5 +1,5 @@
 from flask import jsonify, request
-from app.db.hospital_db import get_hospital_conn
+from app.db.hospital_db import get_hospital_conn, put_hospital_conn
 
 def book_appointment(app):
 
