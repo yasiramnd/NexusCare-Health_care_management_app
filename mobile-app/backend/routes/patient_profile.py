@@ -1,139 +1,190 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, g
 from firebase_admin import auth as firebase_auth
-from app.db.auth_db import get_auth_conn, put_auth_conn
+from app.auth.middleware import token_required
 from app.db.hospital_db import get_hospital_conn, put_hospital_conn
-from utils.qr_generator import generate_and_upload_qr
+from app.db.auth_db import get_auth_conn, put_auth_conn
 
-patient_register_bp = Blueprint("patient_register_bp", __name__)
+patient_profile_bp = Blueprint("patient_profile_bp", __name__)
 
 
-@patient_register_bp.route("/patient/register", methods=["POST"])
-def register_patient():
-
-    data = request.get_json()
-
-    email = data.get("email")
-    password = data.get("password")
-    name = data.get("name")
-    contact_no1 = data.get("contact_no1")
-    contact_no2 = data.get("contact_no2")
-    address = data.get("address")
-    nic = data.get("nic")
-    date_of_birth = data.get("date_of_birth")
-    gender = data.get("gender")
-
-    contact_name = data.get("contact_name")
-    contact_phone = data.get("contact_phone")
-    blood_group = data.get("blood_group", "Unknown")
-    allergies = data.get("allergies")
-    chronic_conditions = data.get("chronic_conditions")
-    is_public_visible = data.get("is_public_visible", False)
-
-    auth_conn = get_auth_conn()
-    hospital_conn = get_hospital_conn()
-    firebase_uid = None
-
+# ── GET  /patient/profile/<patient_id>  ──────────────────────────────────────
+@patient_profile_bp.route("/patient/profile/<patient_id>", methods=["GET"])
+@token_required
+def get_patient_profile(patient_id):
+    """
+    Return full profile for a patient:
+      users  → name, contact_no1, contact_no2, address
+      patient → nic, date_of_birth, gender
+      credentials → email
+    """
+    h_conn = get_hospital_conn()
+    a_conn = get_auth_conn()
     try:
-        # ✅ Firebase user
-        firebase_user = firebase_auth.create_user(
-            email=email,
-            password=password,
-            display_name=name
-        )
-        firebase_uid = firebase_user.uid
+        profile = {}
 
-        # ✅ HOSPITAL DB TRANSACTION
-        with hospital_conn.cursor() as cur:
-
-            # 🔹 1. Insert user → get user_id
+        # ── Hospital DB: users + patient ────────────────────────────────
+        with h_conn.cursor() as cur:
             cur.execute("""
-                INSERT INTO users (name, contact_no1, contact_no2, address)
-                VALUES (%s, %s, %s, %s)
-                RETURNING user_id;
-            """, (name, contact_no1, contact_no2, address))
+                SELECT u.user_id, u.name, u.contact_no1, u.contact_no2, u.address,
+                       p.patient_id, p.nic, p.date_of_birth, p.gender
+                FROM users u
+                JOIN patient p ON p.user_id = u.user_id
+                WHERE p.patient_id = %s
+            """, (patient_id,))
+            row = cur.fetchone()
 
-            user_id = cur.fetchone()["user_id"]
+            if not row:
+                return jsonify({"error": "Patient not found"}), 404
 
-            # 🔹 2. Insert patient → get patient_id
-            cur.execute("""
-                INSERT INTO patient (user_id, nic, date_of_birth, gender)
-                VALUES (%s, %s, %s, %s)
-                RETURNING patient_id;
-            """, (user_id, nic, date_of_birth, gender))
+            profile = {
+                "user_id":      row["user_id"],
+                "name":         row["name"],
+                "contact_no1":  row["contact_no1"],
+                "contact_no2":  row["contact_no2"],
+                "address":      row["address"],
+                "patient_id":   row["patient_id"],
+                "nic":          row["nic"],
+                "date_of_birth": str(row["date_of_birth"]) if row["date_of_birth"] else None,
+                "gender":       row["gender"],
+            }
 
-            patient_id = cur.fetchone()["patient_id"]
-            
-            #   3. Generate QR code
-            qr_url = generate_and_upload_qr(patient_id, cur)
-            if qr_url:
-                print("QR Generated Successfully to ",patient_id)
-            else:
-                print("Failed to generate QR")
+        # ── Auth DB: email ──────────────────────────────────────────────
+        with a_conn.cursor() as cur:
+            cur.execute(
+                "SELECT email FROM credentials WHERE user_id = %s",
+                (profile["user_id"],)
+            )
+            cred = cur.fetchone()
+            profile["email"] = cred[0] if cred else None
 
-
-            # 🔹 4. Insert emergency_profile
-            cur.execute("""
-                INSERT INTO emergency_profile
-                (patient_id, contact_name, contact_phone, blood_group,
-                 allergies, chronic_conditions, is_public_visible)
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
-            """, (
-                patient_id,
-                contact_name,
-                contact_phone,
-                blood_group,
-                allergies,
-                chronic_conditions,
-                is_public_visible
-            ))
-
-        hospital_conn.commit()
-
-        # ✅ AUTH DB
-        with auth_conn.cursor() as cur:
-            cur.execute("""
-                INSERT INTO credentials
-                (user_id, username, email, password_hash, firebase_uid, role, is_active)
-                VALUES (%s, %s, %s, NULL, %s, 'PATIENT', TRUE)
-            """, (
-                user_id,
-                email.split("@")[0],
-                email,
-                firebase_uid
-            ))
-
-        auth_conn.commit()
+        return jsonify(profile), 200
 
     except Exception as e:
-        _cleanup(auth_conn, hospital_conn, firebase_uid)
         return jsonify({"error": str(e)}), 500
-
     finally:
-        put_auth_conn(auth_conn)
-        put_hospital_conn(hospital_conn)
-
-    return jsonify({
-        "message": "Patient registered successfully",
-        "user_id": user_id,
-        "patient_id": patient_id,
-        "firebase_uid": firebase_uid,
-        "QR_code_URL": qr_url
-    }), 201
+        put_hospital_conn(h_conn)
+        put_auth_conn(a_conn)
 
 
-def _cleanup(auth_conn, hospital_conn, firebase_uid):
+# ── PUT  /patient/profile/<patient_id>  ──────────────────────────────────────
+@patient_profile_bp.route("/patient/profile/<patient_id>", methods=["PUT"])
+@token_required
+def update_patient_profile(patient_id):
+    """
+    Update editable profile fields.
+    Accepts JSON: { name, contact_no1, contact_no2, address }
+    """
+    data = request.get_json()
+    name        = data.get("name")
+    contact_no1 = data.get("contact_no1")
+    contact_no2 = data.get("contact_no2")
+    address     = data.get("address")
+
+    h_conn = get_hospital_conn()
     try:
-        auth_conn.rollback()
-    except:
-        pass
+        with h_conn.cursor() as cur:
+            # Look up the user_id from patient table
+            cur.execute(
+                "SELECT user_id FROM patient WHERE patient_id = %s",
+                (patient_id,)
+            )
+            row = cur.fetchone()
+            if not row:
+                return jsonify({"error": "Patient not found"}), 404
 
+            user_id = row["user_id"]
+
+            # Build dynamic UPDATE
+            updates = []
+            values  = []
+            if name is not None:
+                updates.append("name = %s")
+                values.append(name)
+            if contact_no1 is not None:
+                updates.append("contact_no1 = %s")
+                values.append(contact_no1)
+            if contact_no2 is not None:
+                updates.append("contact_no2 = %s")
+                values.append(contact_no2)
+            if address is not None:
+                updates.append("address = %s")
+                values.append(address)
+
+            if not updates:
+                return jsonify({"error": "No fields to update"}), 400
+
+            values.append(user_id)
+            cur.execute(
+                f"UPDATE users SET {', '.join(updates)} WHERE user_id = %s",
+                tuple(values)
+            )
+
+        h_conn.commit()
+
+        # If name was updated, also update Firebase display name
+        if name:
+            try:
+                a_conn = get_auth_conn()
+                with a_conn.cursor() as cur:
+                    cur.execute(
+                        "SELECT firebase_uid FROM credentials WHERE user_id = %s",
+                        (user_id,)
+                    )
+                    cred = cur.fetchone()
+                    if cred and cred[0]:
+                        firebase_auth.update_user(
+                            cred[0],
+                            display_name=name
+                        )
+                put_auth_conn(a_conn)
+            except Exception:
+                pass  # non-critical — DB is already updated
+
+        return jsonify({"message": "Profile updated successfully"}), 200
+
+    except Exception as e:
+        h_conn.rollback()
+        return jsonify({"error": str(e)}), 500
+    finally:
+        put_hospital_conn(h_conn)
+
+
+# ── POST  /patient/change-password  ─────────────────────────────────────────
+@patient_profile_bp.route("/patient/change-password", methods=["POST"])
+@token_required
+def change_password():
+    """
+    Change the user's Firebase password.
+    Body: { new_password }
+    The caller is already authenticated via @token_required,
+    so we trust their identity from g.user_id.
+    """
+    data = request.get_json()
+    new_password = data.get("new_password")
+
+    if not new_password or len(new_password) < 6:
+        return jsonify({"error": "Password must be at least 6 characters"}), 400
+
+    a_conn = get_auth_conn()
     try:
-        hospital_conn.rollback()
-    except:
-        pass
+        with a_conn.cursor() as cur:
+            cur.execute(
+                "SELECT firebase_uid FROM credentials WHERE user_id = %s",
+                (g.user_id,)
+            )
+            cred = cur.fetchone()
 
-    if firebase_uid:
-        try:
-            firebase_auth.delete_user(firebase_uid)
-        except:
-            pass
+            if not cred or not cred[0]:
+                return jsonify({"error": "User credentials not found"}), 404
+
+            firebase_auth.update_user(
+                cred[0],
+                password=new_password
+            )
+
+        return jsonify({"message": "Password changed successfully"}), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        put_auth_conn(a_conn)
