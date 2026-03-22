@@ -730,10 +730,10 @@ def upload_lab_report(request_id):
 			lab_id = _ensure_lab_identity(cur, user_id)
 
 
-			# Fetch patient/doctor metadata for this request
+			# Fetch patient_id and test_name for this request
 			cur.execute(
 				"""
-				SELECT patient_id, doctor_id, test_name
+				SELECT patient_id, test_name
 				FROM lab_requests
 				WHERE request_id = %s AND lab_id = %s
 				""",
@@ -741,8 +741,7 @@ def upload_lab_report(request_id):
 			)
 			req_row = cur.fetchone()
 			patient_id = req_row[0] if req_row else None
-			doctor_id = req_row[1] if req_row else None
-			test_name = req_row[2] if req_row else None
+			test_name = req_row[1] if req_row else None
 
 			cur.execute(
 				"""
@@ -760,23 +759,6 @@ def upload_lab_report(request_id):
 			row = cur.fetchone()
 			if not row:
 				return jsonify({"error": "Request not found"}), 404
-
-			# Keep canonical lab_reports table in sync with uploaded files.
-			if patient_id and doctor_id:
-				cur.execute(
-					"""
-					INSERT INTO lab_reports (
-						patient_id,
-						doctor_id,
-						lab_id,
-						test_name,
-						file_url,
-						uploaded_at
-					)
-					VALUES (%s, %s, %s, %s, %s, NOW())
-					""",
-					(patient_id, doctor_id, lab_id, test_name or "Lab Report", file_url),
-				)
 
 			conn.commit()
 
