@@ -1,5 +1,5 @@
 from flask import jsonify
-from db import get_db
+from app.db.hospital_db import get_hospital_conn
 
 def get_lab_reports(app):
 
@@ -7,7 +7,7 @@ def get_lab_reports(app):
     def lab_reports(patient_id):
 
         try:
-            conn = get_db()
+            conn = get_hospital_conn()
             cur = conn.cursor()
 
             cur.execute("""
@@ -48,7 +48,7 @@ def get_requested_lab_reports(app):
     def requested_lab_reports(patient_id):
 
         try:
-            conn = get_db()
+            conn = get_hospital_conn()
             cur = conn.cursor()
 
             cur.execute("""

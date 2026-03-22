@@ -1,5 +1,5 @@
 from flask import jsonify, request
-from app.db.hospital_db import get_hospital_conn
+from app.db.hospital_db import get_hospital_conn, put_hospital_conn
 
 def book_appointment(app):
 
@@ -107,10 +107,8 @@ def book_appointment(app):
             traceback.print_exc()
             return jsonify({"error": str(e)}), 500
         finally:
-            if cur:
-                cur.close()
             if conn:
-                conn.close()
+                put_hospital_conn(conn)
 
     @app.route("/appointment/patient/<patient_id>", methods=["GET"])
     def get_patient_appointments(patient_id):
@@ -163,7 +161,5 @@ def book_appointment(app):
             traceback.print_exc()
             return jsonify({"error": str(e)}), 500
         finally:
-            if cur:
-                cur.close()
             if conn:
-                conn.close()
+                put_hospital_conn(conn)

@@ -62,3 +62,8 @@ htmlcov/
 # Docker
 # =========================
 docker-compose.override.yml
+
+# =========================
+# Android / Gradle cache
+# =========================
+**/.gradle/

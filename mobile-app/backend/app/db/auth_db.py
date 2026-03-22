@@ -5,7 +5,7 @@ from app.config import Config
 # Pool connects to Supabase ap-south-1 (AUTH_DB_*)
 # Table used: credentials (user_id, firebase_uid, role, is_active)
 
-"""
+
 auth_pool = SimpleConnectionPool(
     1, 2,  # ✅ reduce connections (VERY IMPORTANT)
 
@@ -16,7 +16,7 @@ auth_pool = SimpleConnectionPool(
     port=5432,
     sslmode="require"
 )
-"""
+
 def get_auth_conn():
     return auth_pool.getconn()
 

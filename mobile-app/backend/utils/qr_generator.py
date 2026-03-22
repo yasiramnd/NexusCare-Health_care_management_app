@@ -16,15 +16,15 @@ load_dotenv()
 # Environment Configuration
 # ==========================
 
-DB_HOST = os.getenv("DB_HOST")
-DB_NAME = os.getenv("DB_NAME")
-DB_USER = os.getenv("DB_USER")
-DB_PASSWORD = os.getenv("DB_PASSWORD")
-DB_PORT = os.getenv("DB_PORT")
+HOSPITAL_DB_HOST = os.getenv("DB_HOST")
+HOSPITAL_DB_NAME = os.getenv("DB_NAME")
+HOSPITAL_DB_USER = os.getenv("DB_USER")
+HOSPITAL_DB_PASSWORD = os.getenv("DB_PASSWORD")
+HOSPITAL_DB_PORT = os.getenv("DB_PORT")
 
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY")
-SUPABASE_BUCKET = os.getenv("SUPABASE_BUCKET")
+SUPABASE_URL = os.getenv("SUPABASE_URL") or ""
+SUPABASE_KEY = os.getenv("SUPABASE_KEY") or ""
+SUPABASE_BUCKET = os.getenv("SUPABASE_BUCKET") or ""
 
 # Supabase client
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
@@ -44,11 +44,11 @@ os.makedirs(QR_FOLDER, exist_ok=True)
 
 def patient_exists(patient_id):
     conn = psycopg2.connect(
-        host=DB_HOST,
-        database=DB_NAME,
-        user=DB_USER,
-        password=DB_PASSWORD,
-        port=DB_PORT
+        host=HOSPITAL_DB_HOST,
+        database=HOSPITAL_DB_NAME,
+        user=HOSPITAL_DB_USER,
+        password=HOSPITAL_DB_PASSWORD,
+        port=HOSPITAL_DB_PORT
     )
     cur = conn.cursor()
 
@@ -73,7 +73,8 @@ def generate_qr_image(patient_id):
     file_path = os.path.join(QR_FOLDER, filename)
 
     img = qrcode.make(url)
-    img.save(file_path)
+    with open(file_path, "wb") as f:
+        img.save(f)
 
     return file_path, filename
 
@@ -103,11 +104,11 @@ def upload_to_supabase(file_path, filename):
 def update_qr_url(patient_id, qr_url):
 
     conn = psycopg2.connect(
-        host=DB_HOST,
-        database=DB_NAME,
-        user=DB_USER,
-        password=DB_PASSWORD,
-        port=DB_PORT
+        host=HOSPITAL_DB_HOST,
+        database=HOSPITAL_DB_NAME,
+        user=HOSPITAL_DB_USER,
+        password=HOSPITAL_DB_PASSWORD,
+        port=HOSPITAL_DB_PORT
     )
     cur = conn.cursor()
 
