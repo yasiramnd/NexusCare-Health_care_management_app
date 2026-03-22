@@ -27,7 +27,7 @@ SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 SUPABASE_BUCKET = os.getenv("SUPABASE_BUCKET")
 EMERGENCY_PORTAL_BASE_URL = os.getenv(
     "EMERGENCY_PORTAL_BASE_URL",
-    "nexuscare-emergency-responder.netlify.app"
+    "https://nexuscare-emergency-responder.netlify.app"
 )
 
 # Supabase client
@@ -90,6 +90,8 @@ def get_all_patient_ids():
 
 def generate_qr_image(patient_id):
     base = EMERGENCY_PORTAL_BASE_URL.strip().rstrip("/")
+    if base and not (base.startswith("http://") or base.startswith("https://")):
+        base = f"https://{base}"
     url = f"{base}/emergency/{patient_id}"
 
     filename = f"{patient_id}.png"
