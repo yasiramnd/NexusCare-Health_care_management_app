@@ -356,7 +356,22 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
             ),
             validator: (v) => (v == null || v.length < 6) ? 'Min 6 characters' : null,
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton(
+              onPressed: () => Navigator.pushNamed(context, '/forgot-password'),
+              child: Text(
+                'Forgot Password?',
+                style: GoogleFonts.inter(
+                  fontSize: 13,
+                  color: const Color(0xFF60A5FA),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
 
           NxButton(
             label: 'Sign In',
