@@ -25,6 +25,10 @@ DB_PORT = os.getenv("DB_PORT")
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 SUPABASE_BUCKET = os.getenv("SUPABASE_BUCKET")
+EMERGENCY_PORTAL_BASE_URL = os.getenv(
+    "EMERGENCY_PORTAL_BASE_URL",
+    "https://nexuscare-emergency-responder-portal.vercel.app"
+)
 
 # Supabase client
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
@@ -61,13 +65,32 @@ def patient_exists(patient_id):
     return result is not None
 
 
+def get_all_patient_ids():
+    conn = psycopg2.connect(
+        host=DB_HOST,
+        database=DB_NAME,
+        user=DB_USER,
+        password=DB_PASSWORD,
+        port=DB_PORT
+    )
+    cur = conn.cursor()
+
+    cur.execute("SELECT patient_id FROM patient ORDER BY patient_id;")
+    rows = cur.fetchall() or []
+
+    cur.close()
+    conn.close()
+
+    return [row[0] for row in rows if row and row[0]]
+
+
 # ==========================
 # Generate QR Image
 # ==========================
 
 def generate_qr_image(patient_id):
-
-    url = f"http://nexuscare.lk/emergency/{patient_id}"
+    base = EMERGENCY_PORTAL_BASE_URL.strip().rstrip("/")
+    url = f"{base}/emergency/{patient_id}"
 
     filename = f"{patient_id}.png"
     file_path = os.path.join(QR_FOLDER, filename)
@@ -150,3 +173,21 @@ def generate_and_upload_qr(patient_id):
     except Exception as e:
         print("Error:", e)
         return None
+
+
+def regenerate_all_patient_qrs():
+    patient_ids = get_all_patient_ids()
+    success = 0
+    failed = 0
+
+    for pid in patient_ids:
+        qr_url = generate_and_upload_qr(pid)
+        if qr_url:
+            success += 1
+            print(f"[OK] {pid} -> {qr_url}")
+        else:
+            failed += 1
+            print(f"[FAIL] {pid}")
+
+    print(f"Completed. Success: {success}, Failed: {failed}, Total: {len(patient_ids)}")
+    return {"total": len(patient_ids), "success": success, "failed": failed}
