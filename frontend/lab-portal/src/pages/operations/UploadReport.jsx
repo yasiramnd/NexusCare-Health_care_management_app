@@ -63,21 +63,12 @@ export default function UploadReport() {
       const fd = new FormData();
       fd.append("file", file);
 
-      await api.post(`/api/lab/requests/${selectedId}/upload-report`, fd, {
-        timeout: 120000
-      });
+      await api.post(`/api/lab/requests/${selectedId}/upload-report`, fd);
 
       toast.push("success", "Report uploaded ✅ Request marked completed.");
       setFile(null);
     } catch (e) {
-      if (!e?.response) {
-        toast.push(
-          "error",
-          "Upload failed before server response. Check internet, try a smaller PDF, or retry in a few seconds."
-        );
-      } else {
-        toast.push("error", e?.response?.data?.error || e?.message || "Upload failed");
-      }
+      toast.push("error", e?.response?.data?.error || e?.message || "Upload failed");
     } finally {
       setBusy(false);
     }
