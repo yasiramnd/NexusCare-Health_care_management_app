@@ -5,6 +5,7 @@ import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import Loader from "./Loader";
 
+
 function EmergencyProfile() {
 
   const { patientId } = useParams();
@@ -15,8 +16,9 @@ function EmergencyProfile() {
 
   useEffect(() => {
 
+    const apiBase = process.env.REACT_APP_API_BASE_URL || 'https://13.60.80.212.nip.io';
 
-  fetch(`https://13.60.80.212.nip.io/emergency/${encodeURIComponent(patientId)}`)
+  fetch(`${apiBase}/emergency/${encodeURIComponent(patientId)}`)
     .then((response) => response.json())
     .then((result) => {
 
