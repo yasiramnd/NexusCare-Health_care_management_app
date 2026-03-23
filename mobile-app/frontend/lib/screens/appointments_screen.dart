@@ -98,27 +98,35 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
     final provider = context.watch<PatientProvider>();
     final auth = context.watch<AuthProvider>();
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(28),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFF0F172A), Color(0xFF111827)],
+        ),
+      ),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         _header('Book Appointment', Icons.calendar_month_rounded),
-        const SizedBox(height: 24),
+        const SizedBox(height: 28),
 
         // Patient ID notice
         if (auth.patientId == null) ...[
           _infoBox(Icons.info_outline, 'Patient ID is missing. Please login again or contact support.',
               const Color(0xFFD97706)),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
         ],
 
         // Form card
         Container(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(28),
           decoration: _cardDecor(),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text('Find Available Slots', style: GoogleFonts.inter(
-                fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white)),
-            const SizedBox(height: 20),
+                fontSize: 18, fontWeight: FontWeight.w700, color: Colors.white, letterSpacing: 0.3)),
+            const SizedBox(height: 24),
 
              NxTextField(
               controller: _doctorIdCtrl, label: 'Doctor ID',
@@ -127,32 +135,39 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                 if (v.length >= 3) _loadSlots(); // Auto-fetch as user types
               },
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
 
             // Optional: You can still keep the date picker if they want to filter, 
             // but the user says "just type doctor id", so I'll make it secondary or remove it.
             // I'll keep it but make it clear it's optional.
             Text('Optionally filter by date', style: GoogleFonts.inter(
-                fontSize: 12, color: const Color(0xFF6B7280))),
-            const SizedBox(height: 8),
+                fontSize: 13, color: const Color(0xFF9CA3AF), fontWeight: FontWeight.w500)),
+            const SizedBox(height: 10),
             GestureDetector(
               onTap: _pickDate,
               child: Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 decoration: BoxDecoration(
                   color: const Color(0xFF1F2937),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: const Color(0xFF374151)),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFF2D3748), width: 1.5),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.2),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
                 child: Row(children: [
-                  const Icon(Icons.calendar_today_outlined, color: Color(0xFF6B7280), size: 16),
-                  const SizedBox(width: 10),
+                  const Icon(Icons.calendar_today_outlined, color: Color(0xFF9CA3AF), size: 18),
+                  const SizedBox(width: 12),
                   Text(
                     _selectedDate == null ? 'All Dates'
                         : '${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}',
-                    style: GoogleFonts.inter(fontSize: 13,
-                        color: _selectedDate == null ? const Color(0xFF6B7280) : Colors.white),
+                    style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w500,
+                        color: _selectedDate == null ? const Color(0xFF9CA3AF) : Colors.white),
                   ),
                   if (_selectedDate != null) ...[
                     const Spacer(),
@@ -161,13 +176,13 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                         setState(() { _selectedDate = null; });
                         _loadSlots();
                       },
-                      child: const Icon(Icons.close_rounded, color: Color(0xFFEF4444), size: 18),
+                      child: const Icon(Icons.close_rounded, color: Color(0xFFEF4444), size: 20),
                     ),
                   ],
                 ]),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
 
             NxButton(
               label: 'Check Available Times',
@@ -178,19 +193,19 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
           ]),
         ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1),
 
-        const SizedBox(height: 20),         // Available times (Date-specific list)
+        const SizedBox(height: 28),         // Available times (Date-specific list)
         if (provider.availableTimes.isNotEmpty) ...[
           if (provider.doctorName != null)
             _doctorInfoCard(provider.doctorName!, provider.doctorSpec ?? ''),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
 
           Text('Select a Time Slot', style: GoogleFonts.inter(
-              fontSize: 14, fontWeight: FontWeight.w600, color: const Color(0xFF9CA3AF))),
-          const SizedBox(height: 12),
+              fontSize: 15, fontWeight: FontWeight.w700, color: Colors.white, letterSpacing: 0.2)),
+          const SizedBox(height: 14),
 
           _timeSlotsGrid(provider.availableTimes),
 
-          const SizedBox(height: 20),
+          const SizedBox(height: 24),
           NxButton(label: 'Confirm Booking', loading: _booking, onPressed: _book,
               icon: Icons.check_circle_outline_rounded),
         ],
