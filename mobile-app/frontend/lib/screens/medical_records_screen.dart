@@ -33,72 +33,125 @@ class _MedicalRecordsScreenState extends State<MedicalRecordsScreen> {
     final provider = context.watch<PatientProvider>();
     final auth     = context.watch<AuthProvider>();
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(28),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          Container(width: 40, height: 40,
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFF0F172A), Color(0xFF111827)],
+        ),
+      ),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            Container(width: 48, height: 48,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF059669), Color(0xFF10B981)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF10B981).withOpacity(0.3),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ]),
+                child: const Icon(Icons.folder_open_rounded, color: Colors.white, size: 24)),
+            const SizedBox(width: 16),
+            Expanded(child: Text('Medical Records', style: GoogleFonts.inter(
+                fontSize: 26, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: -0.5))),
+            Container(
               decoration: BoxDecoration(
-                  color: const Color(0xFF059669).withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(10)),
-              child: const Icon(Icons.folder_open_rounded, color: Color(0xFF34D399), size: 22)),
-          const SizedBox(width: 12),
-          Text('Medical Records', style: GoogleFonts.inter(
-              fontSize: 22, fontWeight: FontWeight.w800, color: Colors.white)),
-          const Spacer(),
-          IconButton(
-            icon: const Icon(Icons.refresh_rounded, color: Color(0xFF6B7280)),
-            onPressed: _load, tooltip: 'Refresh',
-          ),
-        ]).animate().fadeIn(),
+                color: const Color(0xFF1F2937),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: IconButton(
+                icon: const Icon(Icons.refresh_rounded, color: Color(0xFF9CA3AF), size: 22),
+                onPressed: _load,
+                tooltip: 'Refresh',
+              ),
+            ),
+          ]).animate().fadeIn(),
 
-        if (auth.patientId == null) ...[
-          const SizedBox(height: 24),
-          _noIdBox(),
-        ] else if (provider.loading) ...[
-          const SizedBox(height: 60),
-          const Center(child: CircularProgressIndicator(color: Color(0xFF1E6FFF))),
-        ] else if (provider.error != null) ...[
-          const SizedBox(height: 24),
-          _errorBox(provider.error!),
-        ] else if (provider.medicalRecords.isEmpty) ...[
-          const SizedBox(height: 60),
-          _empty('No medical records found.', Icons.folder_open_outlined),
-        ] else ...[
-          const SizedBox(height: 24),
-          Text('${provider.medicalRecords.length} record(s) found',
-              style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF6B7280))),
-          const SizedBox(height: 16),
-          ...provider.medicalRecords.asMap().entries.map((e) =>
-              _RecordCard(record: e.value)
-                  .animate().fadeIn(delay: Duration(milliseconds: 80 * e.key))
-                  .slideY(begin: 0.1)),
-        ],
-      ]),
+          if (auth.patientId == null) ...[
+            const SizedBox(height: 28),
+            _noIdBox(),
+          ] else if (provider.loading) ...[
+            const SizedBox(height: 60),
+            const Center(child: CircularProgressIndicator(color: Color(0xFF1E6FFF))),
+          ] else if (provider.error != null) ...[
+            const SizedBox(height: 28),
+            _errorBox(provider.error!),
+          ] else if (provider.medicalRecords.isEmpty) ...[
+            const SizedBox(height: 60),
+            _empty('No medical records found.', Icons.folder_open_outlined),
+          ] else ...[
+            const SizedBox(height: 28),
+            Text('${provider.medicalRecords.length} record(s) found',
+                style: GoogleFonts.inter(fontSize: 14, color: const Color(0xFF9CA3AF), fontWeight: FontWeight.w600)),
+            const SizedBox(height: 18),
+            ...provider.medicalRecords.asMap().entries.map((e) =>
+                _RecordCard(record: e.value)
+                    .animate().fadeIn(delay: Duration(milliseconds: 80 * e.key))
+                    .slideY(begin: 0.1)),
+          ],
+        ]),
+      ),
     );
   }
 
   Widget _noIdBox() => Container(
-    padding: const EdgeInsets.all(20),
+    padding: const EdgeInsets.all(18),
     decoration: BoxDecoration(
-      color: const Color(0xFFD97706).withOpacity(0.1),
+      color: const Color(0xFFD97706).withOpacity(0.08),
       borderRadius: BorderRadius.circular(14),
-      border: Border.all(color: const Color(0xFFD97706).withOpacity(0.3)),
+      border: Border.all(color: const Color(0xFFD97706).withOpacity(0.4), width: 1.5),
+      boxShadow: [
+        BoxShadow(
+          color: const Color(0xFFD97706).withOpacity(0.15),
+          blurRadius: 12,
+          offset: const Offset(0, 4),
+        ),
+      ],
     ),
     child: Row(children: [
-      const Icon(Icons.warning_amber_rounded, color: Color(0xFFD97706), size: 24),
+      Container(
+        padding: const EdgeInsets.all(6),
+        decoration: BoxDecoration(
+          color: const Color(0xFFD97706).withOpacity(0.2),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: const Icon(Icons.warning_amber_rounded, color: Color(0xFFD97706), size: 22),
+      ),
       const SizedBox(width: 12),
       Expanded(child: Text(
           'Patient ID is missing. Please login again or contact support.',
-          style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFFFCD34D)))),
+          style: GoogleFonts.inter(fontSize: 14, color: const Color(0xFFFCD34D), fontWeight: FontWeight.w600, height: 1.4))),
     ]),
   );
   Widget _errorBox(String e) => Container(
-    padding: const EdgeInsets.all(14),
-    decoration: BoxDecoration(color: const Color(0xFFEF4444).withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFEF4444).withOpacity(0.3))),
-    child: Text(e, style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFFFCA5A5))),
+    padding: const EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: const Color(0xFFEF4444).withOpacity(0.08),
+      borderRadius: BorderRadius.circular(12),
+      border: Border.all(color: const Color(0xFFEF4444).withOpacity(0.4), width: 1.5),
+      boxShadow: [
+        BoxShadow(
+          color: const Color(0xFFEF4444).withOpacity(0.15),
+          blurRadius: 8,
+          offset: const Offset(0, 2),
+        ),
+      ],
+    ),
+    child: Row(children: [
+      const Icon(Icons.error_outline_rounded, color: Color(0xFFEF4444), size: 20),
+      const SizedBox(width: 10),
+      Expanded(child: Text(e, style: GoogleFonts.inter(fontSize: 14, color: const Color(0xFFFCA5A5), fontWeight: FontWeight.w600, height: 1.4))),
+    ]),
   );
   Widget _empty(String msg, IconData icon) => Center(
     child: Column(children: [

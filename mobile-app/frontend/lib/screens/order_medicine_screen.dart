@@ -62,23 +62,43 @@ class _OrderMedicineScreenState extends State<OrderMedicineScreen> {
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(28),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          Container(width: 40, height: 40,
-              decoration: BoxDecoration(color: const Color(0xFFDB2777).withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(10)),
-              child: const Icon(Icons.local_pharmacy_rounded, color: Color(0xFFF472B6), size: 22)),
-          const SizedBox(width: 12),
-          Text('Order Medicine', style: GoogleFonts.inter(
-              fontSize: 22, fontWeight: FontWeight.w800, color: Colors.white)),
-        ]).animate().fadeIn(),
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFF0F172A), Color(0xFF111827)],
+        ),
+      ),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            Container(width: 48, height: 48,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFDB2777), Color(0xFFF472B6)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFFF472B6).withOpacity(0.3),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ]),
+                child: const Icon(Icons.local_pharmacy_rounded, color: Colors.white, size: 24)),
+            const SizedBox(width: 16),
+            Text('Order Medicine', style: GoogleFonts.inter(
+                fontSize: 26, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: -0.5)),
+          ]).animate().fadeIn(),
 
-        const SizedBox(height: 8),
-        Text('Place a normal or priority medicine order from your prescription.',
-            style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF6B7280))),
-        const SizedBox(height: 24),
+          const SizedBox(height: 10),
+          Text('Place a normal or priority medicine order from your prescription.',
+              style: GoogleFonts.inter(fontSize: 14, color: const Color(0xFF9CA3AF), fontWeight: FontWeight.w500, height: 1.5)),
+          const SizedBox(height: 28),
 
         if (auth.patientId == null)
           Container(

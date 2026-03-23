@@ -157,56 +157,104 @@ class _PrescriptionsScreenState extends State<PrescriptionsScreen> {
     final provider = context.watch<PatientProvider>();
     final auth     = context.watch<AuthProvider>();
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(28),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          Container(width: 40, height: 40,
-              decoration: BoxDecoration(color: const Color(0xFF7C3AED).withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(10)),
-              child: const Icon(Icons.medication_rounded, color: Color(0xFFA78BFA), size: 22)),
-          const SizedBox(width: 12),
-          Text('Prescriptions', style: GoogleFonts.inter(
-              fontSize: 22, fontWeight: FontWeight.w800, color: Colors.white)),
-          const Spacer(),
-          IconButton(icon: const Icon(Icons.refresh_rounded, color: Color(0xFF6B7280)),
-              onPressed: _load, tooltip: 'Refresh'),
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFF0F172A), Color(0xFF111827)],
+        ),
+      ),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            Container(width: 48, height: 48,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF7C3AED), Color(0xFFA78BFA)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFFA78BFA).withOpacity(0.3),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ]),
+                child: const Icon(Icons.medication_rounded, color: Colors.white, size: 24)),
+            const SizedBox(width: 16),
+            Expanded(child: Text('Prescriptions', style: GoogleFonts.inter(
+                fontSize: 26, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: -0.5))),
+            Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFF1F2937),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: IconButton(
+                icon: const Icon(Icons.refresh_rounded, color: Color(0xFF9CA3AF), size: 22),
+                onPressed: _load,
+                tooltip: 'Refresh',
+              ),
+            ),
+          ]),
+
+          const SizedBox(height: 28),
+
+          if (auth.patientId == null)
+            _warnBox()
+          else if (provider.loading)
+            const Center(child: Padding(
+              padding: EdgeInsets.only(top: 60),
+              child: CircularProgressIndicator(color: Color(0xFF1E6FFF))))
+          else if (provider.prescriptions.isEmpty)
+            _empty()
+          else
+            ...provider.prescriptions.asMap().entries.map((e) =>
+                _RxCard(rx: e.value, onOrder: () => _openOrder(context, e.value))
+                    .animate().fadeIn(delay: Duration(milliseconds: 80 * e.key))
+                    .slideY(begin: 0.1)),
         ]),
-
-        const SizedBox(height: 24),
-
-        if (auth.patientId == null)
-          _warnBox()
-        else if (provider.loading)
-          const Center(child: Padding(
-            padding: EdgeInsets.only(top: 60),
-            child: CircularProgressIndicator(color: Color(0xFF1E6FFF))))
-        else if (provider.prescriptions.isEmpty)
-          _empty()
-        else
-          ...provider.prescriptions.asMap().entries.map((e) =>
-              _RxCard(rx: e.value, onOrder: () => _openOrder(context, e.value))
-                  .animate().fadeIn(delay: Duration(milliseconds: 80 * e.key))
-                  .slideY(begin: 0.1)),
-      ]),
+      ),
     );
   }
 
   Widget _warnBox() => Container(
-    padding: const EdgeInsets.all(16),
+    padding: const EdgeInsets.all(18),
     decoration: BoxDecoration(
-        color: const Color(0xFFD97706).withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFD97706).withOpacity(0.3))),
-    child: Text('Patient ID is missing. Please login again or contact support.',
-        style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFFFCD34D))),
+      color: const Color(0xFFD97706).withOpacity(0.08),
+      borderRadius: BorderRadius.circular(14),
+      border: Border.all(color: const Color(0xFFD97706).withOpacity(0.4), width: 1.5),
+      boxShadow: [
+        BoxShadow(
+          color: const Color(0xFFD97706).withOpacity(0.15),
+          blurRadius: 12,
+          offset: const Offset(0, 4),
+        ),
+      ],
+    ),
+    child: Row(children: [
+      Container(
+        padding: const EdgeInsets.all(6),
+        decoration: BoxDecoration(
+          color: const Color(0xFFD97706).withOpacity(0.2),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: const Icon(Icons.warning_amber_rounded, color: Color(0xFFD97706), size: 22),
+      ),
+      const SizedBox(width: 12),
+      Expanded(child: Text('Patient ID is missing. Please login again or contact support.',
+          style: GoogleFonts.inter(fontSize: 14, color: const Color(0xFFFCD34D), fontWeight: FontWeight.w600, height: 1.4))),
+    ]),
   );
   Widget _empty() => Center(child: Padding(
     padding: const EdgeInsets.only(top: 60),
     child: Column(children: [
       const Icon(Icons.medication_outlined, size: 52, color: Color(0xFF374151)),
       const SizedBox(height: 12),
-      Text('No prescriptions found.', style: GoogleFonts.inter(color: const Color(0xFF6B7280))),
+      Text('No prescriptions found.', style: GoogleFonts.inter(fontSize: 15, color: const Color(0xFF9CA3AF), fontWeight: FontWeight.w600)),
     ]),
   ));
 }
