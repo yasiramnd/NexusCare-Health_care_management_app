@@ -169,38 +169,68 @@ class _RecordCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 14),
+      margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFF111827),
+        gradient: const LinearGradient(
+          colors: [Color(0xFF1F2937), Color(0xFF111827)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF1F2937)),
+        border: Border.all(color: const Color(0xFF2D3748), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.3),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-                color: const Color(0xFF1E6FFF).withOpacity(0.15),
-                borderRadius: BorderRadius.circular(99)),
+              gradient: const LinearGradient(
+                colors: [Color(0xFF1E6FFF), Color(0xFF3B82F6)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(8),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF1E6FFF).withOpacity(0.3),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
             child: Text(record['diagnosis']?.toString() ?? 'Diagnosis',
-                style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w700,
-                    color: const Color(0xFF60A5FA))),
+                style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700,
+                    color: Colors.white, letterSpacing: 0.2)),
           ),
           const Spacer(),
           Text(record['visit_date']?.toString().split('T').first ?? '',
-              style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF6B7280))),
+              style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF9CA3AF), fontWeight: FontWeight.w500)),
         ]),
-        const SizedBox(height: 12),
+        const SizedBox(height: 14),
         if (record['notes'] != null && record['notes'].toString().isNotEmpty)
           Text(record['notes'].toString(),
-              style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF9CA3AF), height: 1.5)),
-        const SizedBox(height: 10),
+              style: GoogleFonts.inter(fontSize: 14, color: const Color(0xFFD1D5DB), fontWeight: FontWeight.w500, height: 1.6)),
+        const SizedBox(height: 12),
         Row(children: [
-          const Icon(Icons.person_outline, size: 14, color: Color(0xFF6B7280)),
-          const SizedBox(width: 4),
+          Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1E6FFF).withOpacity(0.1),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: const Icon(Icons.person_outline, size: 14, color: Color(0xFF60A5FA)),
+          ),
+          const SizedBox(width: 6),
           Text('Dr. ${record['doctor_name'] ?? '—'}',
-              style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF6B7280))),
+              style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF9CA3AF), fontWeight: FontWeight.w500)),"
           const SizedBox(width: 12),
           const Icon(Icons.medical_services_outlined, size: 14, color: Color(0xFF6B7280)),
           const SizedBox(width: 4),
