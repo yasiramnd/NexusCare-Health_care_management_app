@@ -214,11 +214,11 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
         if (provider.availabilityMap.isNotEmpty) ...[
           if (provider.doctorName != null)
             _doctorInfoCard(provider.doctorName!, provider.doctorSpec ?? ''),
-          const SizedBox(height: 20),
+          const SizedBox(height: 24),
           
           Text('Available Dates and Times', style: GoogleFonts.inter(
-              fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white)),
-          const SizedBox(height: 12),
+              fontSize: 16, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: 0.3)),
+          const SizedBox(height: 16),
 
           ...provider.availabilityMap.entries.map((entry) {
             final dateKey = entry.key;
@@ -227,17 +227,25 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8.0),
+                  padding: const EdgeInsets.symmetric(vertical: 12.0),
                   child: Row(
                     children: [
-                      const Icon(Icons.calendar_today, size: 16, color: Color(0xFF60A5FA)),
-                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1E6FFF).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(Icons.calendar_today, size: 16, color: Color(0xFF60A5FA)),
+                      ),
+                      const SizedBox(width: 10),
                       Text(
                         dateKey, 
                         style: GoogleFonts.inter(
                           fontWeight: FontWeight.w700, 
                           color: const Color(0xFF60A5FA),
-                          fontSize: 15
+                          fontSize: 16,
+                          letterSpacing: 0.2,
                         )
                       ),
                     ],
@@ -255,12 +263,12 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                     );
                   });
                 }, activeDate: dateKey),
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
               ],
             );
           }).toList(),
 
-          const SizedBox(height: 20),
+          const SizedBox(height: 24),
           if (_selectedTime != null && _selectedDate != null)
             NxButton(
               label: 'Confirm Booking for ${_selectedDate!.day}/${_selectedDate!.month} at $_selectedTime', 
@@ -275,79 +283,160 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
               const Color(0xFFD97706)),
 
         if (_error != null) ...[
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
           _msgBox(_error!, isError: true),
         ],
         if (_success != null) ...[
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
           _msgBox(_success!, isError: false),
         ],
-      ]),
+        const SizedBox(height: 20),
+        ]),
+      ),
     );
   }
 
   Widget _header(String title, IconData icon) => Row(children: [
-    Container(width: 40, height: 40,
+    Container(width: 48, height: 48,
         decoration: BoxDecoration(
-            color: const Color(0xFF1E6FFF).withOpacity(0.15),
-            borderRadius: BorderRadius.circular(10)),
-        child: Icon(icon, color: const Color(0xFF60A5FA), size: 22)),
-    const SizedBox(width: 12),
+            gradient: const LinearGradient(
+              colors: [Color(0xFF1E6FFF), Color(0xFF3B82F6)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF1E6FFF).withOpacity(0.3),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ]),
+        child: Icon(icon, color: Colors.white, size: 24)),
+    const SizedBox(width: 16),
     Text(title, style: GoogleFonts.inter(
-        fontSize: 22, fontWeight: FontWeight.w800, color: Colors.white)),
+        fontSize: 26, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: -0.5)),
   ]);
 
   BoxDecoration _cardDecor({Color? border}) => BoxDecoration(
-    color: const Color(0xFF111827), borderRadius: BorderRadius.circular(16),
-    border: Border.all(color: border ?? const Color(0xFF1F2937)),
+    color: const Color(0xFF0F172A),
+    borderRadius: BorderRadius.circular(16),
+    border: Border.all(color: border ?? const Color(0xFF1F2937), width: 1.5),
+    boxShadow: [
+      BoxShadow(
+        color: Colors.black.withOpacity(0.4),
+        blurRadius: 16,
+        offset: const Offset(0, 4),
+      ),
+    ],
   );
 
   Widget _infoBox(IconData icon, String msg, Color color) => Container(
-    padding: const EdgeInsets.all(14),
+    padding: const EdgeInsets.all(16),
     decoration: BoxDecoration(
-      color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(10),
-      border: Border.all(color: color.withOpacity(0.3)),
+      color: color.withOpacity(0.08),
+      borderRadius: BorderRadius.circular(12),
+      border: Border.all(color: color.withOpacity(0.4), width: 1.5),
+      boxShadow: [
+        BoxShadow(
+          color: color.withOpacity(0.1),
+          blurRadius: 8,
+          offset: const Offset(0, 2),
+        ),
+      ],
     ),
     child: Row(children: [
-      Icon(icon, color: color, size: 20),
-      const SizedBox(width: 10),
-      Expanded(child: Text(msg, style: GoogleFonts.inter(fontSize: 13, color: color))),
+      Icon(icon, color: color, size: 22),
+      const SizedBox(width: 12),
+      Expanded(child: Text(msg, style: GoogleFonts.inter(
+          fontSize: 14, color: color, fontWeight: FontWeight.w500, height: 1.4))),
     ]),
   );
 
   Widget _msgBox(String msg, {required bool isError}) => Container(
-    padding: const EdgeInsets.all(12),
+    padding: const EdgeInsets.all(14),
     decoration: BoxDecoration(
-      color: (isError ? const Color(0xFFEF4444) : const Color(0xFF10B981)).withOpacity(0.12),
-      borderRadius: BorderRadius.circular(10),
-      border: Border.all(color: (isError ? const Color(0xFFEF4444) : const Color(0xFF10B981)).withOpacity(0.4)),
+      gradient: LinearGradient(
+        colors: isError
+            ? [const Color(0xFFEF4444).withOpacity(0.1), const Color(0xFFFCA5A5).withOpacity(0.05)]
+            : [const Color(0xFF10B981).withOpacity(0.1), const Color(0xFF6EE7B7).withOpacity(0.05)],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      ),
+      borderRadius: BorderRadius.circular(12),
+      border: Border.all(
+        color: (isError ? const Color(0xFFEF4444) : const Color(0xFF10B981)).withOpacity(0.5),
+        width: 1.5,
+      ),
+      boxShadow: [
+        BoxShadow(
+          color: (isError ? const Color(0xFFEF4444) : const Color(0xFF10B981)).withOpacity(0.15),
+          blurRadius: 8,
+          offset: const Offset(0, 2),
+        ),
+      ],
     ),
-    child: Text(msg, style: GoogleFonts.inter(
-        fontSize: 13,
-        color: isError ? const Color(0xFFFCA5A5) : const Color(0xFF6EE7B7))),
+    child: Row(children: [
+      Icon(
+        isError ? Icons.error_outline_rounded : Icons.check_circle_outline_rounded,
+        color: isError ? const Color(0xFFEF4444) : const Color(0xFF10B981),
+        size: 20,
+      ),
+      const SizedBox(width: 12),
+      Expanded(
+        child: Text(msg, style: GoogleFonts.inter(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: isError ? const Color(0xFFFCA5A5) : const Color(0xFF6EE7B7),
+            height: 1.4)),
+      ),
+    ]),
   );
 
   Widget _doctorInfoCard(String name, String spec) => Container(
-    padding: const EdgeInsets.all(16),
-    decoration: _cardDecor(border: const Color(0xFF1D4ED8)),
+    padding: const EdgeInsets.all(18),
+    decoration: BoxDecoration(
+      gradient: const LinearGradient(
+        colors: [Color(0xFF1E3A8A), Color(0xFF1F2937)],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      ),
+      borderRadius: BorderRadius.circular(14),
+      border: Border.all(color: const Color(0xFF1D4ED8), width: 1.5),
+      boxShadow: [
+        BoxShadow(
+          color: const Color(0xFF1E6FFF).withOpacity(0.2),
+          blurRadius: 12,
+          offset: const Offset(0, 4),
+        ),
+      ],
+    ),
     child: Row(children: [
-      Container(width: 42, height: 42,
-          decoration: BoxDecoration(
-              color: const Color(0xFF1E6FFF).withOpacity(0.15),
-              borderRadius: BorderRadius.circular(10)),
-          child: const Icon(Icons.person_rounded, color: Color(0xFF60A5FA), size: 22)),
-      const SizedBox(width: 12),
+      Container(
+        width: 48,
+        height: 48,
+        decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF1E6FFF), Color(0xFF3B82F6)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(10)),
+        child: const Icon(Icons.person_rounded, color: Colors.white, size: 24)),
+      const SizedBox(width: 14),
       Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text(name, style: GoogleFonts.inter(
-            fontWeight: FontWeight.w700, color: Colors.white)),
+            fontWeight: FontWeight.w800, color: Colors.white, fontSize: 16, letterSpacing: 0.2)),
+        const SizedBox(height: 2),
         Text(spec, style: GoogleFonts.inter(
-            fontSize: 12, color: const Color(0xFF6B7280))),
+            fontSize: 13, color: const Color(0xFF9CA3AF), fontWeight: FontWeight.w500)),
       ]),
     ]),
   );
 
   Widget _timeSlotsGrid(List<String> times, {Function(String)? onSelect, String? activeDate}) => Wrap(
-    spacing: 10, runSpacing: 10,
+    spacing: 12,
+    runSpacing: 12,
     children: times.map((t) {
       final isDateMatch = activeDate == null || 
           (_selectedDate != null && 
@@ -363,16 +452,46 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
           }
         },
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+          duration: const Duration(milliseconds: 250),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
           decoration: BoxDecoration(
-            color: sel ? const Color(0xFF1E6FFF) : const Color(0xFF1F2937),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: sel ? const Color(0xFF1E6FFF) : const Color(0xFF374151)),
+            gradient: sel
+                ? const LinearGradient(
+                    colors: [Color(0xFF1E6FFF), Color(0xFF3B82F6)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  )
+                : LinearGradient(
+                    colors: [const Color(0xFF1F2937), const Color(0xFF111827)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: sel ? const Color(0xFF60A5FA) : const Color(0xFF374151),
+              width: sel ? 2 : 1.5,
+            ),
+            boxShadow: sel
+                ? [
+                    BoxShadow(
+                      color: const Color(0xFF1E6FFF).withOpacity(0.4),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ]
+                : [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.2),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
           ),
           child: Text(t, style: GoogleFonts.inter(
-              fontWeight: FontWeight.w600, fontSize: 13,
-              color: sel ? Colors.white : const Color(0xFF9CA3AF))),
+              fontWeight: FontWeight.w700,
+              fontSize: 14,
+              letterSpacing: 0.3,
+              color: sel ? Colors.white : const Color(0xFFBDBDBD))),
         ),
       );
     }).toList(),
