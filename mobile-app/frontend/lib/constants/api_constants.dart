@@ -2,6 +2,7 @@
 /// Change [baseUrl] to match where your Flask backend is running.
 class ApiConstants {
   static const String baseUrl = 'http://127.0.0.1:5000';
+  static const String chatbotUrl = 'https://13.60.80.212.nip.io';
 
   // ── Auth ──────────────────────────────────────────────────────────────
   static const String authMe       = '$baseUrl/auth/me';
@@ -54,4 +55,6 @@ class ApiConstants {
 
   // ── Change Password ─────────────────────────────────────────────────
   static const String changePassword = '$baseUrl/patient/change-password';
+    // ── Chatbot ───────────────────────────────────────────────────────────
+    static const String patientChat = '$chatbotUrl/patient/chat/message';
 }
